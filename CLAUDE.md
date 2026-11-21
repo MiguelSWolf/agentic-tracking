@@ -7,5 +7,7 @@
   into your output file and stop.
 - Plan phase: write the plan to `.agent-out/plan.md` and change nothing else.
 - Implement phase: only start if the workflow told you the plan was approved (`plan:approved`).
+- In CI you never push or open PRs: commit locally, write `.agent-out/pr.md` and
+  `.agent-out/pr-title.txt`, and the workflow publishes them.
 - Never push to `main`, never force-push, never edit protected zones (see AGENTS.md).
 - Prefer the smallest change that meets the acceptance criteria.
