@@ -12,7 +12,8 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:integration": "turbo run test:integration",
-    "agent:metrics": "node scripts/agent-metrics.mjs"
+    "agent:metrics": "node scripts/agent-metrics.mjs",
+    "adr:index": "node scripts/adr-index.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2",

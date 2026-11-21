@@ -33,6 +33,10 @@ Fixes TRK-
 - [ ] `pnpm lint && pnpm typecheck && pnpm test`
 - [ ] `pnpm test:integration` (if store/projection code changed)
 
+## Docs & specs (ADR-0012)
+
+<!-- Specs, docs and ADRs created or updated in this PR. Or: "None, because …". -->
+
 ## ADRs touched
 
 <!-- ADR-00XX: how. Or "none". Proposed ADR text goes here (agents can't edit docs/adr/). -->

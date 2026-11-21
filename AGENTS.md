@@ -14,7 +14,14 @@ for ~50k events/day.
 - Projections (read models): **MongoDB**, rebuildable from the log at any time.
 - Transport: `EventBus` port. Postgres polling now, Redpanda/Kafka later (ADR-006).
 - Stack: Node 24 + TypeScript (strict), pnpm workspaces + Turborepo, Vitest, Biome, zod.
-- Decisions: `docs/adr/`. Read the relevant ADR before changing anything it covers.
+- Decisions: `docs/adr/`. See "Decisions, specs and docs" below.
+
+## Decisions, specs and docs (read before planning)
+
+1. **Before planning any issue, read `docs/adr/README.md`**, the ADR index. Open every ADR whose tags or title touch the change, and cite them in the plan and the PR. Only `Accepted` ADRs are in force.
+2. **A new or changed decision follows the `write-adr` skill.** Never contradict an accepted ADR silently. Propose a superseding ADR instead (ADR-0012).
+3. **Behaviour and docs change together (ADR-0012).** The plan lists the specs (`docs/specs/`), docs and ADRs it will create or change. The PR updates them in the same change, or states "Docs: none, because …".
+4. **Code standards (ADR-0013)** live in `docs/code-standards/` and use rule IDs (`TS-nn`, `NODE-nn`, `TEST-nn`, `ES-nn`). Cite the IDs when relevant.
 
 ## Repository layout
 
@@ -82,4 +89,6 @@ To change a protected file, describe the proposed change in the PR or issue and 
 ## Review guidance (for CodeRabbit and Codex)
 
 Prioritise, in order: violations of the invariants above, missing contract/replay tests,
-ADR violations, correctness bugs, security/privacy issues. Skip style nits that Biome already enforces.
+ADR violations (check `docs/adr/README.md`), behaviour changes without the matching spec/doc update
+(ADR-0012), correctness bugs, security/privacy issues, code-standard violations (cite the rule ID).
+Skip style nits that Biome already enforces.

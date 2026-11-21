@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-11-20
+- Tags: event-store, postgres, event-sourcing, replay
 
 ## Context
 
