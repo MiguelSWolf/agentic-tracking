@@ -58,8 +58,13 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 24 }
 
+      # pnpm must exist even before the monorepo does (TRK-5 creates package.json).
+      # With package.json, the version comes from its `packageManager` field.
       - uses: pnpm/action-setup@v4
         if: hashFiles('package.json') != ''
+      - uses: pnpm/action-setup@v4
+        if: hashFiles('package.json') == ''
+        with: { version: 10 }
 
       - name: Install deps
         if: hashFiles('package.json') != ''
@@ -75,6 +80,7 @@ jobs:
           node scripts/linear.mjs get "$ISSUE_ID" .agent-out/issue.md
 
       - name: Claude
+        id: claude
         uses: anthropics/claude-code-action@v1
         env:
           DATABASE_URL: postgres://tracking:tracking@localhost:5432/tracking
@@ -107,3 +113,19 @@ jobs:
           node scripts/linear.mjs comment "$ISSUE_ID" .agent-out/comment.md
         env:
           GH_TOKEN: ${{ github.token }}
+
+      # Debugging: keep Claude's full transcript and tell Linear when a run fails.
+      - name: Upload Claude transcript
+        if: always() && steps.claude.outputs.execution_file != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-transcript-${{ github.run_id }}
+          path: ${{ steps.claude.outputs.execution_file }}
+          retention-days: 14
+
+      - name: Report failure to Linear
+        if: failure()
+        run: |
+          printf 'Agent run failed (%s phase). Logs and Claude transcript: %s/%s/actions/runs/%s\n' \
+            "$PHASE" "${{ github.server_url }}" "${{ github.repository }}" "${{ github.run_id }}" > .agent-out/failure.md
+          node scripts/linear.mjs comment "$ISSUE_ID" .agent-out/failure.md || true
