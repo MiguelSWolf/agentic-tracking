@@ -14,7 +14,7 @@ jobs:
     if: github.event_name == 'pull_request' && (startsWith(github.head_ref, 'agent/') || startsWith(github.head_ref, 'audit/'))
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with: { fetch-depth: 0 }
       - name: Check changed paths
         run: |
@@ -34,9 +34,9 @@ jobs:
     if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'audit/')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 24 }
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 24, package-manager-cache: false }
       - name: Validate audit JSON against schema
         run: |
           npx --yes ajv-cli@5 validate --spec=draft2020 -c ajv-formats \
@@ -60,14 +60,14 @@ jobs:
       DATABASE_URL: postgres://tracking:tracking@localhost:5432/tracking
       MONGO_URL: mongodb://localhost:27017/tracking
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Skip until the monorepo exists (before TRK-5)
         id: has
         run: echo "pkg=$([ -f package.json ] && echo yes || echo no)" >> "$GITHUB_OUTPUT"
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         if: steps.has.outputs.pkg == 'yes'
-        with: { node-version: 24 }
-      - uses: pnpm/action-setup@v4
+        with: { node-version: 24, package-manager-cache: false }
+      - uses: pnpm/action-setup@v5
         if: steps.has.outputs.pkg == 'yes'
       - if: steps.has.outputs.pkg == 'yes'
         run: pnpm install --frozen-lockfile

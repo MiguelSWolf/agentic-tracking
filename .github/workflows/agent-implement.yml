@@ -52,17 +52,17 @@ jobs:
         options: >-
           --health-cmd "mongosh --quiet --eval 'db.runCommand({ping:1})'" --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
-      - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
+      - uses: actions/checkout@v5
+        with: { fetch-depth: 0, persist-credentials: false }
 
-      - uses: actions/setup-node@v4
-        with: { node-version: 24 }
+      - uses: actions/setup-node@v5
+        with: { node-version: 24, package-manager-cache: false }
 
       # pnpm must exist even before the monorepo does (TRK-5 creates package.json).
       # With package.json, the version comes from its `packageManager` field.
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
         if: hashFiles('package.json') != ''
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
         if: hashFiles('package.json') == ''
         with: { version: 10 }
 
@@ -91,11 +91,12 @@ jobs:
             Use the `issue-flow` skill. PHASE=${{ env.PHASE }}.
             The Linear issue (with all comments, including any plan feedback) is in `.agent-out/issue.md`.
             Repository rules are in AGENTS.md. Never touch protected zones.
-            ${{ env.PHASE == 'plan' && 'Write only `.agent-out/plan.md`. Do not modify any other file. Do not commit.' || 'The plan was approved by the owner. Implement it and open a DRAFT PR. Write the PR body to `.agent-out/pr.md` first.' }}
+            ${{ env.PHASE == 'plan' && 'Write only `.agent-out/plan.md`. Do not modify any other file. Do not commit.' || 'The plan was approved by the owner. Implement it and commit on branch `agent/trk-<n>-<slug>`. Do NOT push and do NOT open the PR: the workflow does both after you finish. Write the PR body to `.agent-out/pr.md` and a one-line Conventional Commits PR title to `.agent-out/pr-title.txt`.' }}
+            Run one command per Bash call. Avoid pipes, `&&` chains and redirections into protected paths.
           claude_args: >-
             --max-turns ${{ env.PHASE == 'plan' && '25' || '60' }}
-            --allowedTools "Read,Glob,Grep,Write,Edit,Bash(pnpm:*),Bash(git:*),Bash(gh pr create:*),Bash(gh pr view:*),Bash(node:*),Bash(ls:*),Bash(cat:*)"
-            --disallowedTools "Edit(.github/**),Write(.github/**),Edit(.agents/**),Write(.agents/**),Edit(.claude/**),Write(.claude/**),Edit(AGENTS.md),Edit(CLAUDE.md),Edit(docs/adr/**),Write(docs/adr/**),Bash(git push --force:*),Bash(git push -f:*),Bash(gh pr merge:*),Bash(gh pr ready:*)"
+            --allowedTools "Read,Glob,Grep,Write,Edit,Bash(pnpm:*),Bash(git:*),Bash(node:*),Bash(ls:*),Bash(cat:*),Bash(head:*),Bash(tail:*),Bash(grep:*),Bash(wc:*),Bash(mkdir:*),Bash(echo:*)"
+            --disallowedTools "Edit(.github/**),Write(.github/**),Edit(.agents/**),Write(.agents/**),Edit(.claude/**),Write(.claude/**),Edit(AGENTS.md),Edit(CLAUDE.md),Edit(docs/adr/**),Write(docs/adr/**),Bash(git push:*),Bash(gh:*)"
 
       - name: Post plan to Linear (G1)
         if: env.PHASE == 'plan'
@@ -104,20 +105,28 @@ jobs:
           { cat .agent-out/plan.md; printf '\n\n---\n_Plan by Claude (run %s). Add `plan:approved` to proceed, or reply with changes and re-run plan._\n' "${{ github.run_id }}"; } > .agent-out/comment.md
           node scripts/linear.mjs comment "$ISSUE_ID" .agent-out/comment.md
 
-      - name: Report PR link to Linear
+      # The agent never pushes. This deterministic step does, with the Claude App token,
+      # so the PR triggers CI (pushes/PRs made with GITHUB_TOKEN do not trigger workflows).
+      - name: Push branch and open draft PR (G2)
         if: env.PHASE == 'implement'
+        env:
+          GH_TOKEN: ${{ steps.claude.outputs.github_token || github.token }}
         run: |
-          PR=$(gh pr list --search "$ISSUE_ID in:body" --state open --json url --jq '.[0].url')
-          test -n "$PR" || { echo "No PR found for $ISSUE_ID"; exit 1; }
+          BRANCH=$(git rev-parse --abbrev-ref HEAD)
+          case "$BRANCH" in agent/*) ;; *) echo "::error::Claude left HEAD on '$BRANCH', expected agent/*"; exit 1;; esac
+          test -n "$(git log origin/main..HEAD --oneline)" || { echo "::error::No commits on $BRANCH"; exit 1; }
+          test -s .agent-out/pr.md || { echo "::error::Missing .agent-out/pr.md"; exit 1; }
+          TITLE=$(head -n1 .agent-out/pr-title.txt 2>/dev/null || true)
+          [ -n "$TITLE" ] || TITLE=$(git log -1 --format=%s)
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" "HEAD:refs/heads/$BRANCH"
+          PR=$(gh pr create --draft --base main --head "$BRANCH" --title "$TITLE" --body-file .agent-out/pr.md)
           printf 'Draft PR opened by Claude: %s\n\nNext: CodeRabbit review → owner marks ready → merge (G2).\n' "$PR" > .agent-out/comment.md
           node scripts/linear.mjs comment "$ISSUE_ID" .agent-out/comment.md
-        env:
-          GH_TOKEN: ${{ github.token }}
 
       # Debugging: keep Claude's full transcript and tell Linear when a run fails.
       - name: Upload Claude transcript
         if: always() && steps.claude.outputs.execution_file != ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: claude-transcript-${{ github.run_id }}
           path: ${{ steps.claude.outputs.execution_file }}

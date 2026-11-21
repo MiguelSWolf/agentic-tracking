@@ -40,12 +40,19 @@ Read `AGENTS.md`, the ADRs the issue touches, and the code you will change befor
 3. Implement in small commits (Conventional Commits). Tests first where practical.
 4. Run `pnpm lint && pnpm typecheck && pnpm test` (and `pnpm test:integration` if you touched
    store/projection code). Fix until green. Never skip or weaken a test to make it pass.
-5. `git push -u origin HEAD`
-6. Open a **draft** PR:
-   `gh pr create --draft --title "<type>(<scope>): <summary>" --body-file .agent-out/pr.md`
-   using `.github/pull_request_template.md`, including `Fixes TRK-<n>` and a checklist mapping
-   every acceptance criterion to the test or file that satisfies it.
-7. Stop. Do not mark the PR ready, do not merge.
+5. Write the PR body to `.agent-out/pr.md`, following `.github/pull_request_template.md`:
+   `Fixes TRK-<n>` and a checklist mapping every acceptance criterion to the test or file that
+   satisfies it. Write a one-line title to `.agent-out/pr-title.txt`
+   (`<type>(<scope>): <summary>`).
+6. Stop. **Do not push and do not open the PR**: the workflow pushes your branch and opens the
+   draft PR with the files above. `.agent-out/` is git-ignored; never commit it.
+
+## Shell hygiene (CI permissions are strict)
+
+- One command per Bash call. Avoid pipes, `&&` chains and subshells: compound commands are
+  often denied as a whole.
+- Run formatters and linters scoped to the paths you changed, never on the whole repo, so they
+  cannot rewrite protected zones.
 
 ## Never
 

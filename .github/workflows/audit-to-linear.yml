@@ -14,10 +14,10 @@ jobs:
   import:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with: { fetch-depth: 2 }
-      - uses: actions/setup-node@v4
-        with: { node-version: 24 }
+      - uses: actions/setup-node@v5
+        with: { node-version: 24, package-manager-cache: false }
       - name: Import newly added audit reports only
         env:
           LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
