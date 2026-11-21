@@ -24,6 +24,10 @@ gh secret set LINEAR_API_KEY             # Linear → Settings → API → perso
 #   Codex:              ChatGPT Plus → Codex → connect GitHub → create environment → install "Codex for Linear"
 ```
 
+GitHub → Settings → General → Pull Requests: allow **only squash merging**, with the default
+commit message set to **"Pull request title and description"**. The PR body (why, what, decisions,
+plan and owner feedback) then lands in `git log`, so git is the single source of truth.
+
 Then in GitHub → Settings → Rules: ruleset on `main` with *require PR*, *1 approval*,
 *require review from Code Owners*, *require status checks (ci)*, *block force pushes*.
 Enable secret scanning (free on public repos).
