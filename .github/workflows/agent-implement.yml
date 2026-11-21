@@ -135,6 +135,8 @@ jobs:
           git push "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" "HEAD:refs/heads/$BRANCH"
           PR=$(gh pr create --draft --base main --head "$BRANCH" --title "$TITLE" --body-file .agent-out/pr-final.md)
           gh workflow run ci.yml --ref "$BRANCH"
+          # CodeRabbit skips PRs authored by bots ("Bot user detected"); request the review explicitly.
+          gh pr comment "$PR" --body "@coderabbitai review"
           printf 'Draft PR opened by Claude: %s\n\nNext: CodeRabbit review → owner marks ready → merge (G2).\n' "$PR" > .agent-out/comment.md
           node scripts/linear.mjs comment "$ISSUE_ID" .agent-out/comment.md
 
