@@ -40,10 +40,18 @@ Read `AGENTS.md`, the ADRs the issue touches, and the code you will change befor
 3. Implement in small commits (Conventional Commits). Tests first where practical.
 4. Run `pnpm lint && pnpm typecheck && pnpm test` (and `pnpm test:integration` if you touched
    store/projection code). Fix until green. Never skip or weaken a test to make it pass.
-5. Write the PR body to `.agent-out/pr.md`, following `.github/pull_request_template.md`:
-   `Fixes TRK-<n>` and a checklist mapping every acceptance criterion to the test or file that
-   satisfies it. Write a one-line title to `.agent-out/pr-title.txt`
-   (`<type>(<scope>): <summary>`).
+5. Write the PR body to `.agent-out/pr.md`, following `.github/pull_request_template.md`.
+   The reader is a human reviewer, not another agent:
+   - **Why**: the problem in 2–3 sentences, understandable without opening the issue.
+   - **What changed**: what is different now, grouped by area, in plain language. Not a file list.
+   - **Decisions**: every choice the issue or an ADR did not dictate (names, versions, structure,
+     trade-offs), with the alternatives you considered and why you picked this one. Include
+     choices that came from owner feedback. Write "None" only if there truly were none.
+   - **How to review**: where to start, what needs the most attention, what is safe to skim.
+   - Acceptance criteria mapped to evidence, verification commands, ADRs, out-of-scope findings.
+   - Raw command output, plan deviations and assumptions go in the collapsed **Agent notes**.
+   - Short sentences, no filler, no marketing tone. Fill every section; write "None" when empty.
+   Write a one-line title to `.agent-out/pr-title.txt` (`<type>(<scope>): <summary>`).
 6. Stop. **Do not push and do not open the PR**: the workflow pushes your branch and opens the
    draft PR with the files above. `.agent-out/` is git-ignored; never commit it.
 
