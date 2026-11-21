@@ -1,0 +1,81 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  # Gate G5: agent branches may not touch protected zones (CODEOWNERS covers humans).
+  guard-protected-paths:
+    if: github.event_name == 'pull_request' && (startsWith(github.head_ref, 'agent/') || startsWith(github.head_ref, 'audit/'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Check changed paths
+        run: |
+          BASE=${{ github.event.pull_request.base.sha }}
+          CHANGED=$(git diff --name-only "$BASE"...HEAD)
+          echo "$CHANGED"
+          if [[ "${{ github.head_ref }}" == audit/* ]]; then
+            BAD=$(echo "$CHANGED" | grep -vE '^docs/audits/[^/]+\.(md|json)$' || true)
+          else
+            BAD=$(echo "$CHANGED" | grep -E '^(\.github/|\.agents/|\.claude/|AGENTS\.md$|CLAUDE\.md$|docs/adr/|.*/migrations/)' || true)
+          fi
+          if [ -n "$BAD" ]; then
+            echo "::error::Protected paths changed by an agent branch:"; echo "$BAD"; exit 1
+          fi
+
+  validate-audit:
+    if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'audit/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24 }
+      - name: Validate audit JSON against schema
+        run: |
+          npx --yes ajv-cli@5 validate --spec=draft2020 -c ajv-formats \
+            -s .agents/skills/code-health-audit/schema.json -d "docs/audits/*.json"
+
+  checks:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_USER: tracking, POSTGRES_PASSWORD: tracking, POSTGRES_DB: tracking }
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U tracking" --health-interval 5s --health-timeout 5s --health-retries 10
+      mongo:
+        image: mongo:7
+        ports: ['27017:27017']
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ping:1})'" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://tracking:tracking@localhost:5432/tracking
+      MONGO_URL: mongodb://localhost:27017/tracking
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skip until the monorepo exists (before TRK-5)
+        id: has
+        run: echo "pkg=$([ -f package.json ] && echo yes || echo no)" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@v4
+        if: steps.has.outputs.pkg == 'yes'
+        with: { node-version: 24 }
+      - uses: pnpm/action-setup@v4
+        if: steps.has.outputs.pkg == 'yes'
+      - if: steps.has.outputs.pkg == 'yes'
+        run: pnpm install --frozen-lockfile
+      - if: steps.has.outputs.pkg == 'yes'
+        run: pnpm lint
+      - if: steps.has.outputs.pkg == 'yes'
+        run: pnpm typecheck
+      - if: steps.has.outputs.pkg == 'yes'
+        run: pnpm test
+      - if: steps.has.outputs.pkg == 'yes'
+        run: pnpm --if-present test:integration

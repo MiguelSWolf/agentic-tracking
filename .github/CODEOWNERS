@@ -1,0 +1,11 @@
+# Gate G5 — protected zones.
+# With "Require review from Code Owners" on the main ruleset, nothing here merges without you.
+
+/.github/         @MiguelSWolf
+/.agents/         @MiguelSWolf
+/.claude/         @MiguelSWolf
+/AGENTS.md        @MiguelSWolf
+/CLAUDE.md        @MiguelSWolf
+/docs/adr/        @MiguelSWolf
+/scripts/         @MiguelSWolf
+**/migrations/    @MiguelSWolf

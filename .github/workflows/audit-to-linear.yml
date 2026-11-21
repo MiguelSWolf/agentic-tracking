@@ -1,0 +1,27 @@
+# Gate G4: after the owner merges a Codex audit PR, each finding becomes a Linear issue in Triage.
+
+name: audit-to-linear
+
+on:
+  push:
+    branches: [main]
+    paths: ['docs/audits/*.json']
+
+permissions:
+  contents: read
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 2 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 24 }
+      - name: Import newly added audit reports only
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+        run: |
+          ADDED=$(git diff --name-only --diff-filter=A HEAD~1 HEAD -- 'docs/audits/*.json')
+          if [ -z "$ADDED" ]; then echo "No new audit report"; exit 0; fi
+          for f in $ADDED; do node scripts/linear.mjs audit-import "$f"; done

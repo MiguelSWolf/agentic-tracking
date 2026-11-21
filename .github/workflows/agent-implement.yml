@@ -1,0 +1,109 @@
+# Claude works one Linear issue. Two phases, so the plan gate (G1) is enforced by CI, not by trust.
+#   phase=plan       → Claude writes a plan, the workflow posts it on the Linear issue, nothing else changes
+#   phase=implement  → only runs if the issue has `plan:approved`; Claude opens a DRAFT PR (G2)
+# M0 trigger: manual (Actions → agent-implement → Run workflow). M1: Linear webhook → n8n → repository_dispatch.
+
+name: agent-implement
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_id:
+        description: Linear issue (e.g. TRK-5)
+        required: true
+      phase:
+        description: plan or implement
+        required: true
+        default: plan
+        type: choice
+        options: [plan, implement]
+  repository_dispatch:
+    types: [agent-implement]
+
+concurrency:
+  group: agent-${{ github.event.inputs.issue_id || github.event.client_payload.issue_id }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+
+env:
+  ISSUE_ID: ${{ github.event.inputs.issue_id || github.event.client_payload.issue_id }}
+  PHASE: ${{ github.event.inputs.phase || github.event.client_payload.phase }}
+  LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_USER: tracking, POSTGRES_PASSWORD: tracking, POSTGRES_DB: tracking }
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U tracking" --health-interval 5s --health-timeout 5s --health-retries 10
+      mongo:
+        image: mongo:7
+        ports: ['27017:27017']
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ping:1})'" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - uses: actions/setup-node@v4
+        with: { node-version: 24 }
+
+      - uses: pnpm/action-setup@v4
+        if: hashFiles('package.json') != ''
+
+      - name: Install deps
+        if: hashFiles('package.json') != ''
+        run: pnpm install --frozen-lockfile
+
+      - name: Gate G1 — implement requires plan:approved
+        if: env.PHASE == 'implement'
+        run: node scripts/linear.mjs require-label "$ISSUE_ID" plan:approved
+
+      - name: Fetch issue context (Linear → markdown)
+        run: |
+          mkdir -p .agent-out
+          node scripts/linear.mjs get "$ISSUE_ID" .agent-out/issue.md
+
+      - name: Claude
+        uses: anthropics/claude-code-action@v1
+        env:
+          DATABASE_URL: postgres://tracking:tracking@localhost:5432/tracking
+          MONGO_URL: mongodb://localhost:27017/tracking
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Use the `issue-flow` skill. PHASE=${{ env.PHASE }}.
+            The Linear issue (with all comments, including any plan feedback) is in `.agent-out/issue.md`.
+            Repository rules are in AGENTS.md. Never touch protected zones.
+            ${{ env.PHASE == 'plan' && 'Write only `.agent-out/plan.md`. Do not modify any other file. Do not commit.' || 'The plan was approved by the owner. Implement it and open a DRAFT PR. Write the PR body to `.agent-out/pr.md` first.' }}
+          claude_args: >-
+            --max-turns ${{ env.PHASE == 'plan' && '25' || '60' }}
+            --allowedTools "Read,Glob,Grep,Write,Edit,Bash(pnpm:*),Bash(git:*),Bash(gh pr create:*),Bash(gh pr view:*),Bash(node:*),Bash(ls:*),Bash(cat:*)"
+            --disallowedTools "Edit(.github/**),Write(.github/**),Edit(.agents/**),Write(.agents/**),Edit(.claude/**),Write(.claude/**),Edit(AGENTS.md),Edit(CLAUDE.md),Edit(docs/adr/**),Write(docs/adr/**),Bash(git push --force:*),Bash(git push -f:*),Bash(gh pr merge:*),Bash(gh pr ready:*)"
+
+      - name: Post plan to Linear (G1)
+        if: env.PHASE == 'plan'
+        run: |
+          test -s .agent-out/plan.md || { echo "Claude produced no plan"; exit 1; }
+          { cat .agent-out/plan.md; printf '\n\n---\n_Plan by Claude (run %s). Add `plan:approved` to proceed, or reply with changes and re-run plan._\n' "${{ github.run_id }}"; } > .agent-out/comment.md
+          node scripts/linear.mjs comment "$ISSUE_ID" .agent-out/comment.md
+
+      - name: Report PR link to Linear
+        if: env.PHASE == 'implement'
+        run: |
+          PR=$(gh pr list --search "$ISSUE_ID in:body" --state open --json url --jq '.[0].url')
+          test -n "$PR" || { echo "No PR found for $ISSUE_ID"; exit 1; }
+          printf 'Draft PR opened by Claude: %s\n\nNext: CodeRabbit review → owner marks ready → merge (G2).\n' "$PR" > .agent-out/comment.md
+          node scripts/linear.mjs comment "$ISSUE_ID" .agent-out/comment.md
+        env:
+          GH_TOKEN: ${{ github.token }}
