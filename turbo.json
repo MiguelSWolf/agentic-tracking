@@ -1,0 +1,30 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/biome.json"]
+    },
+    "typecheck": {
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/tsconfig.base.json"],
+      "outputs": []
+    },
+    "test": {
+      "inputs": [
+        "src/**",
+        "package.json",
+        "tsconfig.json",
+        "vitest.config.ts",
+        "$TURBO_ROOT$/tsconfig.base.json"
+      ],
+      "outputs": []
+    },
+    "test:integration": {
+      "cache": false,
+      "passThroughEnv": ["DATABASE_URL", "MONGO_URL"]
+    }
+  }
+}

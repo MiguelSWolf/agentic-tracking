@@ -1,0 +1,24 @@
+{
+  "name": "agentic-tracking",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.34.9",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:integration": "turbo run test:integration",
+    "agent:metrics": "node scripts/agent-metrics.mjs"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2",
+    "@types/node": "^24",
+    "turbo": "^2",
+    "typescript": "^5",
+    "vitest": "^3"
+  }
+}
