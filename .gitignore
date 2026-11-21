@@ -1,0 +1,6 @@
+.agent-out/
+.env
+node_modules
+dist
+.turbo
+coverage
