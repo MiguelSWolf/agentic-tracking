@@ -17,6 +17,12 @@ on:
         default: plan
         type: choice
         options: [plan, implement]
+      model:
+        description: Model override (default — plan opus, implement sonnet)
+        required: false
+        default: default
+        type: choice
+        options: [default, claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5]
   repository_dispatch:
     types: [agent-implement]
 
@@ -34,6 +40,8 @@ env:
   ISSUE_ID: ${{ github.event.inputs.issue_id || github.event.client_payload.issue_id }}
   PHASE: ${{ github.event.inputs.phase || github.event.client_payload.phase }}
   LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+  # Opus reasons about the plan (G1); Sonnet executes an approved plan. Override per run if needed.
+  MODEL_OVERRIDE: ${{ github.event.inputs.model || github.event.client_payload.model || 'default' }}
 
 jobs:
   run:
@@ -94,6 +102,7 @@ jobs:
             ${{ env.PHASE == 'plan' && 'Write only `.agent-out/plan.md`. Do not modify any other file. Do not commit.' || 'The plan was approved by the owner. Implement it and commit on branch `agent/trk-<n>-<slug>`. Do NOT push and do NOT open the PR: the workflow does both after you finish. Write the PR body to `.agent-out/pr.md` and a one-line Conventional Commits PR title to `.agent-out/pr-title.txt`.' }}
             Run one command per Bash call. Avoid pipes, `&&` chains and redirections into protected paths.
           claude_args: >-
+            --model ${{ env.MODEL_OVERRIDE != 'default' && env.MODEL_OVERRIDE || (env.PHASE == 'plan' && 'claude-opus-5-5' || 'claude-sonnet-5-5') }}
             --max-turns ${{ env.PHASE == 'plan' && '25' || '60' }}
             --allowedTools "Read,Glob,Grep,Write,Edit,Bash(pnpm:*),Bash(git:*),Bash(node:*),Bash(ls:*),Bash(cat:*),Bash(head:*),Bash(tail:*),Bash(grep:*),Bash(wc:*),Bash(mkdir:*),Bash(echo:*)"
             --disallowedTools "Edit(.github/**),Write(.github/**),Edit(.agents/**),Write(.agents/**),Edit(.claude/**),Write(.claude/**),Edit(AGENTS.md),Edit(CLAUDE.md),Edit(docs/adr/**),Write(docs/adr/**),Bash(git push:*),Bash(gh:*)"
