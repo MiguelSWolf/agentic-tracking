@@ -31,6 +31,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
+  actions: write          # dispatch ci.yml on the agent branch
   contents: write
   pull-requests: write
   issues: write
@@ -114,12 +115,13 @@ jobs:
           { cat .agent-out/plan.md; printf '\n\n---\n_Plan by Claude (run %s). Add `plan:approved` to proceed, or reply with changes and re-run plan._\n' "${{ github.run_id }}"; } > .agent-out/comment.md
           node scripts/linear.mjs comment "$ISSUE_ID" .agent-out/comment.md
 
-      # The agent never pushes. This deterministic step does, with the Claude App token,
-      # so the PR triggers CI (pushes/PRs made with GITHUB_TOKEN do not trigger workflows).
+      # The agent never pushes. This deterministic step does, with the workflow's GITHUB_TOKEN.
+      # (The Claude App token is revoked when the Claude step ends.) GITHUB_TOKEN pushes and PRs
+      # don't trigger workflows, so CI is dispatched explicitly on the branch; checks attach to the commit.
       - name: Push branch and open draft PR (G2)
         if: env.PHASE == 'implement'
         env:
-          GH_TOKEN: ${{ steps.claude.outputs.github_token || github.token }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           BRANCH=$(git rev-parse --abbrev-ref HEAD)
           case "$BRANCH" in agent/*) ;; *) echo "::error::Claude left HEAD on '$BRANCH', expected agent/*"; exit 1;; esac
@@ -132,6 +134,7 @@ jobs:
           { cat .agent-out/pr.md; printf '\n\n'; cat .agent-out/pr-context.md; } > .agent-out/pr-final.md
           git push "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" "HEAD:refs/heads/$BRANCH"
           PR=$(gh pr create --draft --base main --head "$BRANCH" --title "$TITLE" --body-file .agent-out/pr-final.md)
+          gh workflow run ci.yml --ref "$BRANCH"
           printf 'Draft PR opened by Claude: %s\n\nNext: CodeRabbit review → owner marks ready → merge (G2).\n' "$PR" > .agent-out/comment.md
           node scripts/linear.mjs comment "$ISSUE_ID" .agent-out/comment.md
 
