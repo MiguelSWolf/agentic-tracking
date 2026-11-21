@@ -4,6 +4,9 @@ on:
   pull_request:
   push:
     branches: [main]
+  # agent-implement opens PRs with GITHUB_TOKEN, which does not trigger pull_request runs,
+  # so it dispatches this workflow on the agent branch. Checks attach to the same commit.
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -11,17 +14,21 @@ permissions:
 jobs:
   # Gate G5: agent branches may not touch protected zones (CODEOWNERS covers humans).
   guard-protected-paths:
-    if: github.event_name == 'pull_request' && (startsWith(github.head_ref, 'agent/') || startsWith(github.head_ref, 'audit/'))
+    if: >-
+      (github.event_name == 'pull_request' && (startsWith(github.head_ref, 'agent/') || startsWith(github.head_ref, 'audit/'))) ||
+      (github.event_name == 'workflow_dispatch' && (startsWith(github.ref_name, 'agent/') || startsWith(github.ref_name, 'audit/')))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
         with: { fetch-depth: 0 }
       - name: Check changed paths
         run: |
-          BASE=${{ github.event.pull_request.base.sha }}
+          BRANCH="${{ github.head_ref || github.ref_name }}"
+          BASE="${{ github.event.pull_request.base.sha }}"
+          [ -n "$BASE" ] || BASE=origin/main
           CHANGED=$(git diff --name-only "$BASE"...HEAD)
           echo "$CHANGED"
-          if [[ "${{ github.head_ref }}" == audit/* ]]; then
+          if [[ "$BRANCH" == audit/* ]]; then
             BAD=$(echo "$CHANGED" | grep -vE '^docs/audits/[^/]+\.(md|json)$' || true)
           else
             BAD=$(echo "$CHANGED" | grep -E '^(\.github/|\.agents/|\.claude/|AGENTS\.md$|CLAUDE\.md$|docs/adr/|.*/migrations/)' || true)
