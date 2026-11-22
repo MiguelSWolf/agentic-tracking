@@ -67,5 +67,5 @@ An intro, a summary table (ID | Level | Rule | Enforced by), the rules, then
 | ------------------------ | ----------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | Event sourcing (`ES-nn`) | [event-sourcing.md](event-sourcing.md)          | This repo's ADRs                                                                         |
 | TypeScript (`TS-nn`)     | `typescript.md`, coming in a later TRK-16 slice | Google TypeScript Style Guide                                                            |
-| Node runtime (`NODE-nn`) | `node.md`, coming in a later TRK-16 slice       | goldbergyoni/nodebestpractices                                                           |
+| Node runtime (`NODE-nn`) | [node.md](node.md)                              | goldbergyoni/nodebestpractices                                                           |
 | Testing (`TEST-nn`)      | `testing.md`, coming in a later TRK-16 slice    | goldbergyoni/javascript-testing-best-practices, Node.js integration-tests best practices |
