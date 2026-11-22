@@ -8,7 +8,7 @@ the intended shape, not an existing API. Runtime error rules (throw `Error` subc
 live in [node.md](node.md) and are linked, not repeated.
 
 **Biome severity.** Biome reports the recommended rules `noExplicitAny`, `noNonNullAssertion`,
-`useImportType`, `noTsIgnore` and `noConstEnum` at `warn`. The package `lint` scripts do not pass
+`useImportType`, `useExportType`, `useConst`, `noTsIgnore` and `noConstEnum` at `warn`. The package `lint` scripts do not pass
 `--error-on-warnings`, so these checks flag code but do not fail CI. They are active, so they are
 listed as "Biome: …" below. Making them blocking is a separate follow-up.
 
@@ -244,7 +244,10 @@ import { createHash } from "node:crypto";
 const { createHash } = require("node:crypto");
 ```
 
-**Enforced by.** Review only (planned: TypeScript `erasableSyntaxOnly`).
+**Enforced by.** Review only. Planned: TypeScript `erasableSyntaxOnly`, which would reject
+namespaces that contain runtime code and enums, but not plain `require()` calls or ambient
+`declare module` blocks. Those stay Review only. Planned for `require()`: `Biome: style/noCommonJs`
+(exists in 2.6.8, not enabled today).
 
 **Source.**
 [Google, use modules not namespaces](https://google.github.io/styleguide/tsguide.html#use-modules-not-namespaces).
@@ -512,7 +515,7 @@ try {
   await publish(event);
 } catch (error: unknown) {
   if (error instanceof Error) log(error.message);
-  else throw error;
+  else throw new Error("Failed to publish event", { cause: error });
 }
 ```
 
