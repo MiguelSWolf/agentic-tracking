@@ -19,7 +19,7 @@ The rules for keeping docs and behaviour in sync are in
 | [`adr/`](adr/README.md) | Decisions and their rationale. Protected zone. | explanation | Owner commits; agents draft via the `write-adr` skill | A decision is made, changed or superseded |
 | [`specs/`](specs/README.md) | Living spec per capability. | reference | Whoever changes behaviour, in the same PR | Any PR that changes a capability's behaviour |
 | [`code-standards/`](code-standards/README.md) | Normative rules (MUST/SHOULD/MAY) with rule IDs. | reference | Owner; filled by the code-standards issue | A standard is added or changed |
-| [`infra/`](infra/README.md) | Running and operating the system. | how-to | The PR that changes infra or operations | Infra, ports, scripts or operating steps change |
+| [`infra/`](infra/README.md) ([local environment](infra/local-environment.md)) | Running and operating the system. | how-to | The PR that changes infra or operations | Infra, ports, scripts or operating steps change |
 | [`workflow/`](workflow/README.md) | How work flows: roles, gates, Linear and GitHub, skills. | explanation + reference | Owner or agent, linking to protected sources | Gates, workflows, roles or skills change |
 | [`audits/`](audits/README.md) | Milestone audit reports. | reference | Codex via `code-health-audit` | End of each milestone |
 | [`retros/`](retros/README.md) | Milestone retrospectives. | explanation | Owner | End of each milestone |
