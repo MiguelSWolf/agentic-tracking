@@ -7,7 +7,9 @@
     "node": ">=24"
   },
   "scripts": {
-    "dev": "turbo run dev",
+    "infra:up": "docker compose --project-directory . -f infra/docker-compose.yml up -d --wait",
+    "infra:down": "docker compose --project-directory . -f infra/docker-compose.yml down",
+    "dev": "pnpm infra:up && turbo run dev",
     "lint": "turbo run lint lint:root",
     "lint:root": "biome check package.json turbo.json biome.json tsconfig.base.json pnpm-workspace.yaml scripts",
     "typecheck": "turbo run typecheck",

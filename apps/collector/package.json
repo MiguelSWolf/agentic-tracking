@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "lint": "biome check .",
+    "dev": "node --watch --env-file-if-exists=../../.env src/index.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.int.config.ts"
