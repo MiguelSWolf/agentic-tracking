@@ -493,9 +493,11 @@ with a duplicated event and with shuffled batches, and the result **MUST** be th
 const incremental = await dump(await applyIncrementally(projection, stream));
 const rebuilt = await dump(await rebuildFromZero(projection, stream));
 const duplicated = await dump(await rebuildFromZero(projection, withDuplicate(stream)));
+const shuffled = await dump(await rebuildFromZero(projection, shuffleBatches(stream, seed)));
 
 expect(rebuilt).toEqual(incremental);
 expect(duplicated).toEqual(incremental);
+expect(shuffled).toEqual(incremental); // ordering by seq, not delivery order (ES-11)
 ```
 
 ```ts
@@ -512,9 +514,11 @@ expect(await col.countDocuments()).toBe(expectedCount);
 
 ### TEST-17: Test that concurrent appends leave no position gap
 
-**MUST** cover the event store with an integration test that appends from several concurrent
-connections and then checks that a reader never sees a lower `position` appear after a higher one
-was already visible, and that the final positions have no gap.
+**MUST** cover the event store with an integration test that holds the first append's transaction
+open on one connection, appends on a second connection, and checks that the reader does not see
+position 2 (or advance its checkpoint past 1) until the first transaction commits. The test
+**MUST** keep a final check that the positions have no gap. Wait for the second append to block on
+the lock with an event-driven signal, not a sleep ([TEST-19](#test-19-never-sleep-or-poll-in-tests)).
 
 **Why.** This is the failure the advisory lock prevents
 ([ES-03](event-sourcing.md#es-03-take-the-advisory-lock-on-every-append)). ADR-0003 lists the test
@@ -523,16 +527,27 @@ as a consequence of the design.
 **Example.** (illustrative)
 
 ```ts
-// ✅
-await Promise.all(Array.from({ length: 50 }, () => store.append(makeEvent({ eventId: newId() }))));
-const positions = (await store.readFrom(0n)).map((e) => e.position);
-expect(positions).toEqual(positions.toSorted((a, b) => Number(a - b)));
-expect(positions.at(-1)! - positions[0]! + 1n).toBe(BigInt(positions.length));
+// ✅ observe the reader while the first append is still in progress
+const first = await connectionA.begin();
+await appendInTransaction(first, makeEvent({ eventId: newId() })); // position 1, not committed
+
+const second = store.appendOn(connectionB, makeEvent({ eventId: newId() })); // not awaited
+await waitUntilBlockedOnAdvisoryLock(connectionB); // event-driven, no sleep
+
+expect(await reader.readFrom(0n)).toEqual([]); // position 2 must not be visible early
+
+await first.commit();
+await second;
+
+const positions = (await reader.readFrom(0n)).map((e) => e.position);
+expect(positions).toEqual([1n, 2n]); // final no-gap check
 ```
 
 ```ts
-// ❌ sequential appends cannot hit the race
-for (const e of events) await store.append(e);
+// ❌ checks only the end state: passes even if position 2 was visible before position 1 committed
+await Promise.all(Array.from({ length: 50 }, () => store.append(makeEvent({ eventId: newId() }))));
+const positions = (await store.readFrom(0n)).map((e) => e.position);
+expect(positions.at(-1)! - positions[0]! + 1n).toBe(BigInt(positions.length));
 ```
 
 **Enforced by.** Review only (planned: this `event-store` integration test).
