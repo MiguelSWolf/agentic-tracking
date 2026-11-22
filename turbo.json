@@ -8,6 +8,16 @@
     "lint": {
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/biome.json"]
     },
+    "//#lint:root": {
+      "inputs": [
+        "package.json",
+        "turbo.json",
+        "biome.json",
+        "tsconfig.base.json",
+        "pnpm-workspace.yaml",
+        "scripts/**"
+      ]
+    },
     "typecheck": {
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/tsconfig.base.json"],
       "outputs": []

@@ -8,7 +8,8 @@
   },
   "scripts": {
     "dev": "turbo run dev",
-    "lint": "turbo run lint",
+    "lint": "turbo run lint lint:root",
+    "lint:root": "biome check package.json turbo.json biome.json tsconfig.base.json pnpm-workspace.yaml scripts",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:integration": "turbo run test:integration",
