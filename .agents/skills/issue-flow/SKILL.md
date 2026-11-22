@@ -23,14 +23,16 @@ Change no source files. Write `.agent-out/plan.md` with:
 
 **Tests:** which tests prove each acceptance criterion (name them).
 
-**Touches ADRs:** ADR-00X (how) — or "none".
+**Touches ADRs:** ADR-00X (how) — or "none". (You read `docs/adr/README.md` first.)
+
+**Docs to update (ADR-0012):** specs in `docs/specs/`, other docs and ADRs this change will create or modify — or "none, because …". A new or changed decision → propose an ADR via `write-adr`.
 
 **Risks / open questions:** bullet list, or "none". If a question blocks you, say so and stop here.
 
 **Size:** S (<100 lines) | M (100–400) | L (>400 → propose a split instead).
 ```
 
-Read `AGENTS.md`, the ADRs the issue touches, and the code you will change before writing the plan.
+Read `AGENTS.md`, the ADR index (`docs/adr/README.md`) and every ADR it points you to, the matching specs in `docs/specs/`, and the code you will change before writing the plan.
 
 ## PHASE = implement (only with `plan:approved`)
 
