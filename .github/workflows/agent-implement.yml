@@ -106,7 +106,7 @@ jobs:
             --model ${{ env.MODEL_OVERRIDE != 'default' && env.MODEL_OVERRIDE || (env.PHASE == 'plan' && 'claude-opus-5-5' || 'claude-sonnet-5-5') }}
             --max-turns ${{ env.PHASE == 'plan' && '25' || '60' }}
             --allowedTools "Read,Glob,Grep,Write,Edit,Bash(pnpm:*),Bash(git:*),Bash(node:*),Bash(ls:*),Bash(cat:*),Bash(head:*),Bash(tail:*),Bash(grep:*),Bash(wc:*),Bash(mkdir:*),Bash(echo:*),WebFetch(domain:google.github.io),WebFetch(domain:github.com),WebFetch(domain:raw.githubusercontent.com),WebFetch(domain:diataxis.fr),WebFetch(domain:www.rfc-editor.org)"
-            --disallowedTools "Edit(.github/**),Write(.github/**),Edit(.agents/**),Write(.agents/**),Edit(.claude/**),Write(.claude/**),Edit(AGENTS.md),Edit(CLAUDE.md),Edit(docs/adr/**),Write(docs/adr/**),Bash(git push:*),Bash(gh:*)"
+            --disallowedTools "Edit(.github/**),Write(.github/**),Edit(.agents/**),Write(.agents/**),Edit(.claude/**),Write(.claude/**),Edit(AGENTS.md),Write(AGENTS.md),Edit(CLAUDE.md),Write(CLAUDE.md),Edit(docs/adr/**),Write(docs/adr/**),Edit(**/migrations/**),Write(**/migrations/**),Edit(scripts/linear.mjs),Write(scripts/linear.mjs),Bash(git push:*),Bash(gh:*)"
 
       - name: Post plan to Linear (G1)
         if: env.PHASE == 'plan'
