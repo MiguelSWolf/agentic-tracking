@@ -13,30 +13,31 @@
 //   - Tags: comma, separated, keywords
 //   - Supersedes: ADR-XXXX            (optional)
 
-import { readdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
-const DIR = 'docs/adr';
-const INDEX = join(DIR, 'README.md');
+const DIR = "docs/adr";
+const INDEX = join(DIR, "README.md");
 const FILE_RE = /^(\d{4})-[a-z0-9-]+\.md$/;
 
 function parse(file) {
-  const text = readFileSync(join(DIR, file), 'utf8');
+  const text = readFileSync(join(DIR, file), "utf8");
   const title = text.match(/^# ADR-(\d{4}): (.+)$/m);
-  const field = (name) => text.match(new RegExp(`^- ${name}: (.+)$`, 'm'))?.[1]?.trim() ?? '';
+  const field = (name) => text.match(new RegExp(`^- ${name}: (.+)$`, "m"))?.[1]?.trim() ?? "";
   if (!title) throw new Error(`${file}: missing "# ADR-NNNN: <title>" heading`);
-  if (title[1] !== file.slice(0, 4)) throw new Error(`${file}: heading number ${title[1]} does not match file name`);
-  for (const f of ['Status', 'Date', 'Tags']) {
+  if (title[1] !== file.slice(0, 4))
+    throw new Error(`${file}: heading number ${title[1]} does not match file name`);
+  for (const f of ["Status", "Date", "Tags"]) {
     if (!field(f)) throw new Error(`${file}: missing "- ${f}:" line`);
   }
   return {
     id: `ADR-${title[1]}`,
     file,
     title: title[2].trim(),
-    status: field('Status'),
-    date: field('Date'),
-    tags: field('Tags'),
-    supersedes: field('Supersedes'),
+    status: field("Status"),
+    date: field("Date"),
+    tags: field("Tags"),
+    supersedes: field("Supersedes"),
   };
 }
 
@@ -45,18 +46,18 @@ const adrs = readdirSync(DIR)
   .sort()
   .map(parse);
 
-if (process.argv.includes('--next')) {
+if (process.argv.includes("--next")) {
   const last = adrs.length ? Number(adrs.at(-1).id.slice(4)) : 0;
-  console.log(String(last + 1).padStart(4, '0'));
+  console.log(String(last + 1).padStart(4, "0"));
   process.exit(0);
 }
 
 const rows = adrs
   .map((a) => {
-    const sup = a.supersedes ? ` (supersedes ${a.supersedes})` : '';
+    const sup = a.supersedes ? ` (supersedes ${a.supersedes})` : "";
     return `| [${a.id}](${a.file}) | ${a.title}${sup} | ${a.status} | ${a.date} | ${a.tags} |`;
   })
-  .join('\n');
+  .join("\n");
 
 const index = `# Architecture Decision Records
 
@@ -72,10 +73,10 @@ Every significant decision is recorded here. **Agents read this index before pla
 ${rows}
 `;
 
-if (process.argv.includes('--check')) {
-  const current = existsSync(INDEX) ? readFileSync(INDEX, 'utf8') : '';
+if (process.argv.includes("--check")) {
+  const current = existsSync(INDEX) ? readFileSync(INDEX, "utf8") : "";
   if (current !== index) {
-    console.error('docs/adr/README.md is out of date. Run: pnpm adr:index');
+    console.error("docs/adr/README.md is out of date. Run: pnpm adr:index");
     process.exit(1);
   }
   console.log(`ADR index up to date (${adrs.length} ADRs).`);
