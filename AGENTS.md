@@ -29,8 +29,15 @@ for ~50k events/day.
 apps/        collector, projector, api, demo-landing, demo-shop
 packages/    event-schemas, event-store, event-bus, sdk-browser, sdk-node
 infra/       docker-compose (postgres, mongo, n8n, metabase)
-docs/adr/    architecture decision records
-docs/audits/ milestone audit reports (Codex)
+docs/        all documentation; start at docs/README.md
+  adr/             architecture decision records (index: adr/README.md)
+  specs/           living specs per capability (ADR-0012)
+  code-standards/  TS-nn / NODE-nn / TEST-nn / ES-nn rules (ADR-0013)
+  infra/           how to run and operate infra/
+  workflow/        agent workflow, gates G0-G5, skills
+  audits/          milestone audit reports (Codex)
+  retros/          milestone retrospectives
+scripts/     repo tooling (linear.mjs, adr-index.mjs)
 .agents/     shared skills
 ```
 
@@ -82,7 +89,10 @@ and CODEOWNERS requires the owner's review:
 
 ```
 .github/   .agents/   .claude/   AGENTS.md   CLAUDE.md   docs/adr/   **/migrations/
+scripts/linear.mjs
 ```
+
+`docs/code-standards/` joins this list once the first full version of the code standards merges (ADR-0013).
 
 To change a protected file, describe the proposed change in the PR or issue and let the owner apply it.
 

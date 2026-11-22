@@ -7,5 +7,5 @@
 /AGENTS.md        @MiguelSWolf
 /CLAUDE.md        @MiguelSWolf
 /docs/adr/        @MiguelSWolf
-/scripts/         @MiguelSWolf
+/scripts/linear.mjs @MiguelSWolf
 **/migrations/    @MiguelSWolf
