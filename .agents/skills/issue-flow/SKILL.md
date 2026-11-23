@@ -40,6 +40,10 @@ Read `AGENTS.md`, the ADR index (`docs/adr/README.md`) and every ADR it points y
    If the plan comments contain owner feedback, apply it.
 2. `git switch -c agent/trk-<n>-<short-slug>`
 3. Implement in small commits (Conventional Commits). Tests first where practical.
+   For every new test or ✅ code example, name the wrong behaviour it must catch and check that it
+   would fail on it. An example must not break another rule ID (M0 retro, rule A: #18, #19, #23).
+   When a doc or spec says something is validated or enforced, name the exact check and state what
+   it does not cover (M0 retro, rule B: #18, #23).
 4. Run `pnpm lint && pnpm typecheck && pnpm test` (and `pnpm test:integration` if you touched
    store/projection code). Fix until green. Never skip or weaken a test to make it pass.
 5. Write the PR body to `.agent-out/pr.md`, following `.github/pull_request_template.md`.

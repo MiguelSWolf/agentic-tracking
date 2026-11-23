@@ -7,6 +7,7 @@ import {
   importAudit,
   isAutomatedComment,
   parentContext,
+  readAllPages,
 } from "./linear-lib.mjs";
 
 const finding = (id, title) => ({
@@ -337,5 +338,69 @@ describe("formatParentSection", () => {
     expect(md.startsWith("### Parent issue TRK-16")).toBe(true);
     expect(md).toContain("#### Parent plan (latest)");
     expect(md).toContain("##### Miguel Wolf — 2026-11-21T23:42:29Z");
+  });
+});
+
+describe("readAllPages", () => {
+  // A fake paginated API: pages keyed by the cursor that requests them (null = first page).
+  const api = (pages) => {
+    const calls = [];
+    return {
+      calls,
+      fetchPage: async (after) => {
+        calls.push(after);
+        return pages[after ?? "start"];
+      },
+    };
+  };
+  const issue = (n) => ({ identifier: `TRK-${n}` });
+
+  it("with three pages, returns every node and marks the export complete", async () => {
+    const { fetchPage, calls } = api({
+      start: { nodes: [issue(1), issue(2)], pageInfo: { hasNextPage: true, endCursor: "c1" } },
+      c1: { nodes: [issue(3)], pageInfo: { hasNextPage: true, endCursor: "c2" } },
+      c2: { nodes: [issue(4)], pageInfo: { hasNextPage: false, endCursor: "c3" } },
+    });
+
+    const result = await readAllPages(fetchPage);
+
+    expect(result.complete).toBe(true);
+    expect(result.nodes.map((n) => n.identifier)).toEqual(["TRK-1", "TRK-2", "TRK-3", "TRK-4"]);
+    expect(calls).toEqual([null, "c1", "c2"]);
+  });
+
+  it("with hasNextPage but no cursor, stops and marks the export incomplete", async () => {
+    const { fetchPage } = api({
+      start: { nodes: [issue(1)], pageInfo: { hasNextPage: true, endCursor: null } },
+    });
+
+    const result = await readAllPages(fetchPage);
+
+    expect(result).toEqual({ nodes: [issue(1)], complete: false });
+  });
+
+  it("with a cursor that repeats, stops instead of looping and marks it incomplete", async () => {
+    const { fetchPage, calls } = api({
+      start: { nodes: [issue(1)], pageInfo: { hasNextPage: true, endCursor: "c1" } },
+      c1: { nodes: [issue(2)], pageInfo: { hasNextPage: true, endCursor: "c1" } },
+    });
+
+    const result = await readAllPages(fetchPage);
+
+    expect(result.complete).toBe(false);
+    expect(calls).toEqual([null, "c1"]);
+  });
+
+  it("with more pages than maxPages, marks the export incomplete", async () => {
+    let n = 0;
+    const fetchPage = async () => {
+      n += 1;
+      return { nodes: [issue(n)], pageInfo: { hasNextPage: true, endCursor: `c${n}` } };
+    };
+
+    const result = await readAllPages(fetchPage, { maxPages: 3 });
+
+    expect(result.complete).toBe(false);
+    expect(result.nodes).toHaveLength(3);
   });
 });

@@ -10,7 +10,7 @@ Every significant decision is recorded here. **Agents read this index before pla
 | ADR | Decision | Status | Date | Tags |
 | --- | --- | --- | --- | --- |
 | [ADR-0001](0001-node-typescript-shared-schemas.md) | Node/TypeScript across the system, with shared zod schemas | Accepted | 2026-11-20 | stack, typescript, zod, monorepo, contracts |
-| [ADR-0002](0002-postgres-event-store.md) | PostgreSQL is the event store | Accepted | 2026-11-20 | event-store, postgres, event-sourcing, replay |
+| [ADR-0002](0002-postgres-event-store.md) | PostgreSQL is the event store | Superseded by ADR-0014 | 2026-11-20 | event-store, postgres, event-sourcing, replay |
 | [ADR-0003](0003-serialized-appends.md) | Serialized appends so global position is never visible out of order | Accepted | 2026-11-20 | event-store, postgres, concurrency, ordering |
 | [ADR-0004](0004-mongo-projections.md) | Projections in MongoDB, with a checkpoint per projection and blue/green rebuilds | Accepted | 2026-11-20 | projections, mongodb, replay, blue-green |
 | [ADR-0005](0005-no-aggregate-snapshots.md) | No aggregate snapshots; projection snapshots are optional | Accepted | 2026-11-20 | event-sourcing, snapshots, projections |
@@ -22,3 +22,4 @@ Every significant decision is recorded here. **Agents read this index before pla
 | [ADR-0011](0011-calibration-metrics.md) | Calibration metrics decide when gates are relaxed | Accepted | 2026-11-20 | agents, gates, metrics, workflow |
 | [ADR-0012](0012-living-specs-and-docs.md) | Specs and docs live in the repo and change in the same PR as the behaviour | Accepted | 2026-11-21 | docs, specs, workflow, agents, source-of-truth |
 | [ADR-0013](0013-code-standards-foundation.md) | Code standards are normative, sourced and enforced by tooling first | Accepted | 2026-11-21 | code-standards, typescript, node, testing, review, agents |
+| [ADR-0014](0014-unpartitioned-event-store-global-event-id.md) | The event store is one unpartitioned `events` table with a global unique `event_id` (supersedes ADR-0002) | Accepted | 2026-11-23 | event-store, postgres, event-sourcing, replay, idempotency |

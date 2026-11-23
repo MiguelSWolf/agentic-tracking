@@ -93,8 +93,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           if node scripts/linear.mjs require-label "$ISSUE_ID" type:retro > /dev/null 2>&1; then
-            node scripts/agent-metrics.mjs > .agent-out/metrics.md 2> .agent-out/metrics.err || cp .agent-out/metrics.err .agent-out/metrics.md
             node scripts/linear.mjs retro-export "$ISSUE_ID" .agent-out/retro-inputs.md
+            node scripts/agent-metrics.mjs --issues .agent-out/retro-inputs.md > .agent-out/metrics.md 2> .agent-out/metrics.err \
+              || cp .agent-out/metrics.err .agent-out/metrics.md
             # Review comments and @claude requests on merged agent PRs (recurring corrections).
             for n in $(gh pr list --state merged --limit 200 --json number,headRefName \
                 --jq '.[] | select(.headRefName | startswith("agent/")) | .number'); do
@@ -125,7 +126,7 @@ jobs:
             --model ${{ env.MODEL_OVERRIDE != 'default' && env.MODEL_OVERRIDE || (env.PHASE == 'plan' && 'claude-opus-5-5' || 'claude-sonnet-5-5') }}
             --max-turns ${{ env.PHASE == 'plan' && '40' || '60' }}
             --allowedTools "Read,Glob,Grep,Write,Edit,Bash(pnpm:*),Bash(git:*),Bash(node:*),Bash(ls:*),Bash(cat:*),Bash(head:*),Bash(tail:*),Bash(grep:*),Bash(wc:*),Bash(mkdir:*),Bash(echo:*),WebFetch(domain:google.github.io),WebFetch(domain:github.com),WebFetch(domain:raw.githubusercontent.com),WebFetch(domain:diataxis.fr),WebFetch(domain:www.rfc-editor.org),WebFetch(domain:www.postgresql.org),WebFetch(domain:martinfowler.com),WebFetch(domain:learn.microsoft.com),WebFetch(domain:www.mongodb.com)"
-            --disallowedTools "Edit(.github/**),Write(.github/**),Edit(.agents/**),Write(.agents/**),Edit(.claude/**),Write(.claude/**),Edit(AGENTS.md),Write(AGENTS.md),Edit(CLAUDE.md),Write(CLAUDE.md),Edit(docs/adr/**),Write(docs/adr/**),Edit(**/migrations/**),Write(**/migrations/**),Edit(scripts/linear.mjs),Write(scripts/linear.mjs),Edit(scripts/linear-lib.mjs),Write(scripts/linear-lib.mjs),Edit(docs/code-standards/**),Write(docs/code-standards/**),Bash(git push:*),Bash(gh:*)"
+            --disallowedTools "Edit(.github/**),Write(.github/**),Edit(.agents/**),Write(.agents/**),Edit(.claude/**),Write(.claude/**),Edit(AGENTS.md),Write(AGENTS.md),Edit(CLAUDE.md),Write(CLAUDE.md),Edit(docs/adr/**),Write(docs/adr/**),Edit(**/migrations/**),Edit(scripts/linear.mjs),Write(scripts/linear.mjs),Edit(scripts/linear-lib.mjs),Write(scripts/linear-lib.mjs),Edit(scripts/guard-paths.mjs),Write(scripts/guard-paths.mjs),Edit(scripts/guard-paths-lib.mjs),Write(scripts/guard-paths-lib.mjs),Edit(docs/code-standards/**),Write(docs/code-standards/**),Bash(git push:*),Bash(gh:*)"
 
       - name: Post plan to Linear (G1)
         if: env.PHASE == 'plan'

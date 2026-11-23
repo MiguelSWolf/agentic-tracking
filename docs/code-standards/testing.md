@@ -321,7 +321,7 @@ const db = newDb(); // in-memory Postgres emulator
 
 **Source.** [Node 2.1, Use Docker-Compose to host the database](https://github.com/testjavascript/nodejs-integration-tests-best-practices#-21-use-docker-compose-to-host-the-database-and-other-infrastructure),
 [Node 2.4, Optimize your real DB for testing, Don't fake it](https://github.com/testjavascript/nodejs-integration-tests-best-practices#-24-optimize-your-real-db-for-testing-dont-fake-it),
-[ADR-0002](../adr/0002-postgres-event-store.md), [ADR-0004](../adr/0004-mongo-projections.md).
+[ADR-0014](../adr/0014-unpartitioned-event-store-global-event-id.md), [ADR-0004](../adr/0004-mongo-projections.md).
 
 ### TEST-11: Build the test schema with the production migrations
 
