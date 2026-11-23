@@ -1,6 +1,6 @@
 # Claude works one Linear issue. Two phases, so the plan gate (G1) is enforced by CI, not by trust.
 #   phase=plan       → Claude writes a plan, the workflow posts it on the Linear issue, nothing else changes
-#   phase=implement  → only runs if the issue has `plan:approved`; Claude opens a DRAFT PR (G2)
+#   phase=implement  → only runs if the issue has `plan:approved`; Claude's branch becomes a PR ready for review (G2)
 # M0 trigger: manual (Actions → agent-implement → Run workflow). M1: Linear webhook → n8n → repository_dispatch.
 
 name: agent-implement
@@ -118,7 +118,7 @@ jobs:
       # The agent never pushes. This deterministic step does, with the workflow's GITHUB_TOKEN.
       # (The Claude App token is revoked when the Claude step ends.) GITHUB_TOKEN pushes and PRs
       # don't trigger workflows, so CI is dispatched explicitly on the branch; checks attach to the commit.
-      - name: Push branch and open draft PR (G2)
+      - name: Push branch and open PR (G2)
         if: env.PHASE == 'implement'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -133,11 +133,11 @@ jobs:
           node scripts/linear.mjs pr-context "$ISSUE_ID" .agent-out/pr-context.md
           { cat .agent-out/pr.md; printf '\n\n'; cat .agent-out/pr-context.md; } > .agent-out/pr-final.md
           git push "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" "HEAD:refs/heads/$BRANCH"
-          PR=$(gh pr create --draft --base main --head "$BRANCH" --title "$TITLE" --body-file .agent-out/pr-final.md)
+          PR=$(gh pr create --base main --head "$BRANCH" --title "$TITLE" --body-file .agent-out/pr-final.md)
           gh workflow run ci.yml --ref "$BRANCH"
           # CodeRabbit skips PRs authored by bots ("Bot user detected"); request the review explicitly.
           gh pr comment "$PR" --body "@coderabbitai review"
-          printf 'Draft PR opened by Claude: %s\n\nNext: CodeRabbit review → owner marks ready → merge (G2).\n' "$PR" > .agent-out/comment.md
+          printf 'PR opened by Claude: %s\n\nNext: owner review → merge (G2).\n' "$PR" > .agent-out/comment.md
           node scripts/linear.mjs comment "$ISSUE_ID" .agent-out/comment.md
 
       # Debugging: keep Claude's full transcript and tell Linear when a run fails.
