@@ -4,14 +4,14 @@
 
 Process and tooling gaps found while running the agentic loop in M0. They are recorded as soon as they are noticed, by agents (in the same PR), by the workflows (a Linear issue labelled `source:finding`, imported by the retro) or by the owner. The milestone retro records a decision for each one. See [docs/workflow/findings.md](../../../workflow/findings.md).
 
-**14 findings, 6 still open.**
+**14 findings, 7 still open.**
 
 | ID | Finding | Area | Source | Status |
 | --- | --- | --- | --- | --- |
 | [F-001](F-001-plan-turn-cap.md) | Plan phase was capped at 25 turns, too few for plans that verify sources | Gate G1 | workflow | fixed ([#15](https://github.com/MiguelSWolf/agentic-tracking/pull/15)) |
 | [F-002](F-002-formatted-claude-mention.md) | A `@claude` mention written as a formatted link does not trigger the iteration | Gate G3 | owner | fixed ([#26](https://github.com/MiguelSWolf/agentic-tracking/pull/26)) |
 | [F-003](F-003-pnpm-denied-on-bot-prs.md) | Iterations could not run `pnpm` on PRs opened by `github-actions[bot]` | Gate G3 | workflow | fixed ([#20](https://github.com/MiguelSWolf/agentic-tracking/pull/20)) |
-| [F-004](F-004-no-thread-replies.md) | The agent fixes review comments but does not reply in the review threads | Gate G3 | owner | fixed ([#26](https://github.com/MiguelSWolf/agentic-tracking/pull/26)) |
+| [F-004](F-004-no-thread-replies.md) | The agent fixes review comments but does not reply in the review threads | Gate G3 | owner | open |
 | [F-005](F-005-parent-issue-context.md) | `pr-context` does not include the parent issue's plan and owner feedback | Agent context | agent | open |
 | [F-006](F-006-env-files-blocked.md) | The agent sandbox cannot write `.env*` files | Agent sandbox | agent | accepted |
 | [F-007](F-007-ci-event-run-on-bot-prs.md) | The `pull_request` CI run fails with no jobs on PRs opened by the bot | CI | owner | open |
