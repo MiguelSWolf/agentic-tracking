@@ -9,6 +9,7 @@
 //   node scripts/linear.mjs audit-import <audit.json>      create one Triage issue per finding (gate G4)
 //   node scripts/linear.mjs finding <title.txt> <body.md>   open a source:finding issue, or comment on the open one
 //                                                          with the same title (docs/workflow/findings.md)
+//   node scripts/linear.mjs retro-export <TRK-n> <out.md>  milestone issues + source:finding issues for the retro skill
 
 import { readFileSync, writeFileSync } from "node:fs";
 
@@ -213,6 +214,50 @@ async function cmdFinding(titleFile, bodyFile) {
   console.log(`created ${created.issueCreate.issue.identifier}`);
 }
 
+async function cmdRetroExport(id, out) {
+  const data = await gql(
+    `query($id: String!) {
+      issue(id: $id) {
+        identifier
+        projectMilestone {
+          name
+          issues(first: 250) { nodes { identifier title url state { name } labels { nodes { name } } } }
+        }
+      }
+    }`,
+    { id },
+  );
+  const milestone = data.issue?.projectMilestone;
+  if (!milestone) fail(`${id} has no project milestone`);
+  const { teamId, labelId } = await teamContext(FINDING_LABEL);
+  const findings = await gql(
+    `query($teamId: ID!, $labelId: ID!) {
+      issues(first: 250, filter: { team: { id: { eq: $teamId } }, labels: { id: { eq: $labelId } } }) {
+        nodes { identifier title url createdAt state { name } description comments(first: 20) { nodes { body } } }
+      }
+    }`,
+    { teamId, labelId },
+  );
+  const rows = [...milestone.issues.nodes]
+    .sort((a, b) => a.identifier.localeCompare(b.identifier, "en", { numeric: true }))
+    .map((i) => {
+      const labels = i.labels.nodes.map((l) => l.name).join(", ");
+      return `| ${i.identifier} | ${i.title.replaceAll("|", "\\|")} | ${i.state.name} | ${labels} |`;
+    })
+    .join("\n");
+  const findingBlocks = findings.issues.nodes
+    .map((f) => {
+      const repeats = f.comments.nodes.filter((c) => c.body.startsWith("Happened again")).length;
+      return `### ${f.identifier}: ${f.title}\n\n- State: ${f.state.name}\n- Created: ${f.createdAt}\n- Repeats: ${repeats}\n- URL: ${f.url}\n\n${f.description ?? ""}`;
+    })
+    .join("\n\n");
+  writeFileSync(
+    out,
+    `# Retro inputs: ${milestone.name}\n\n## Milestone issues\n\n| Issue | Title | State | Labels |\n| --- | --- | --- | --- |\n${rows}\n\n## Linear findings (source:finding)\n\n${findingBlocks || "None."}\n`,
+  );
+  console.log(`wrote ${out}`);
+}
+
 const [cmd, ...args] = process.argv.slice(2);
 const commands = {
   get: cmdGet,
@@ -221,6 +266,7 @@ const commands = {
   comment: cmdComment,
   "audit-import": cmdAuditImport,
   finding: cmdFinding,
+  "retro-export": cmdRetroExport,
 };
 if (!commands[cmd]) fail(`unknown command "${cmd}"`);
 await commands[cmd](...args);

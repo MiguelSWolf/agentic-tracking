@@ -44,6 +44,7 @@ Process gaps found along the way: [findings.md](findings.md).
 - Skills (in `.agents/skills/`):
   - [`issue-flow`](../../.agents/skills/issue-flow/SKILL.md)
   - [`review-pr`](../../.agents/skills/review-pr/SKILL.md): how to review a PR and apply review feedback
+  - [`retro`](../../.agents/skills/retro/SKILL.md): milestone retro, decides every finding and applies ADR-0011
   - [`write-adr`](../../.agents/skills/write-adr/SKILL.md)
   - [`new-event-type`](../../.agents/skills/new-event-type/SKILL.md)
   - [`new-projection`](../../.agents/skills/new-projection/SKILL.md)
