@@ -74,6 +74,8 @@ or fails, report the blocker and provide the plain-text request for the owner to
 
 ## Mode 2: Respond (an `@claude` request on a PR)
 
+0. Before you edit a file, check it against AGENTS.md → Protected zones. If it is protected, do not try Edit, Write or a Bash rewrite: put the change as a diff under 'Proposed owner changes'.
+   To sync the branch with the remote, follow [Syncing an agent branch with the remote](../../../docs/workflow/README.md#syncing-an-agent-branch-with-the-remote); never `git reset --hard`.
 1. Read every open review thread and the request. Do only what they ask (scope discipline).
 2. Fix each item in a small commit (Conventional Commits), then run `pnpm lint && pnpm typecheck && pnpm test`.
 3. **Reply to every thread** with what changed and the commit SHA (F-004). Resolve the thread only if

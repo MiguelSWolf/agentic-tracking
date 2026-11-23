@@ -40,6 +40,7 @@ Read `AGENTS.md`, the ADR index (`docs/adr/README.md`) and every ADR it points y
    If the plan comments contain owner feedback, apply it.
 2. `git switch -c agent/trk-<n>-<short-slug>`
 3. Implement in small commits (Conventional Commits). Tests first where practical.
+   Before you edit a file, check it against AGENTS.md → Protected zones. If it is protected, do not try Edit, Write or a Bash rewrite: put the change as a diff under 'Proposed owner changes'.
    For every new test or ✅ code example, name the wrong behaviour it must catch and check that it
    would fail on it. An example must not break another rule ID (M0 retro, rule A: #18, #19, #23).
    When a doc or spec says something is validated or enforced, name the exact check and state what

@@ -9,7 +9,10 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(gh pr view:*)",
-      "Bash(gh pr list:*)"
+      "Bash(gh pr list:*)",
+      "Bash(git fetch:*)",
+      "Bash(git merge --ff-only:*)",
+      "Bash(git merge --no-edit:*)"
     ],
     "ask": [
       "Bash(git push:*)",
@@ -26,7 +29,10 @@
       "Bash(git push origin main:*)",
       "Bash(gh pr merge:*)",
       "Read(.env)",
-      "Read(.env.*)"
+      "Read(.env.*)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Bash(git reset --hard:*)"
     ]
   }
 }
