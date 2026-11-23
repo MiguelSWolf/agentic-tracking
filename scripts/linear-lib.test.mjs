@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { auditKey, importAudit } from "./linear-lib.mjs";
+import { auditKey, closingIssue, findingsForMilestone, importAudit } from "./linear-lib.mjs";
 
 const finding = (id, title) => ({
   id,
@@ -97,5 +97,54 @@ describe("importAudit", () => {
     const created = await importAudit(report, linear);
 
     expect(created).toContain("M0-01");
+  });
+});
+
+describe("closingIssue", () => {
+  it("with a Fixes line, returns the issue", () => {
+    expect(closingIssue("Owner-side half of TRK-9.\n\nFixes TRK-28\n\n## Why")).toBe("TRK-28");
+  });
+
+  it("with Closes or Resolves in any case, returns the issue", () => {
+    expect(closingIssue("closes trk-7")).toBe("TRK-7");
+    expect(closingIssue("Resolved TRK-12 as well")).toBe("TRK-12");
+  });
+
+  it("with an unrelated mention before the closing reference, returns the closed issue", () => {
+    expect(closingIssue("Depends on TRK-23 (see notes).\n\nFixes TRK-25")).toBe("TRK-25");
+  });
+
+  it("with only bare mentions, returns null", () => {
+    expect(closingIssue("Related to TRK-23 and TRK-27, no closing reference.")).toBeNull();
+    expect(closingIssue("")).toBeNull();
+  });
+});
+
+describe("findingsForMilestone", () => {
+  const m0 = "milestone-m0";
+  const m1 = "milestone-m1";
+  const findings = [
+    { identifier: "TRK-40", projectMilestone: { id: m0 } },
+    { identifier: "TRK-41", projectMilestone: { id: m1 } },
+    { identifier: "TRK-42", projectMilestone: null },
+    { identifier: "TRK-43", projectMilestone: { id: m0 } },
+  ];
+
+  it("with findings from several milestones, keeps only the retro milestone's own", () => {
+    const { ours } = findingsForMilestone(findings, m0);
+
+    expect(ours.map((f) => f.identifier)).toEqual(["TRK-40", "TRK-43"]);
+  });
+
+  it("with a finding of another milestone, leaves it out of both sections", () => {
+    const { ours, unassigned } = findingsForMilestone(findings, m0);
+
+    expect([...ours, ...unassigned].map((f) => f.identifier)).not.toContain("TRK-41");
+  });
+
+  it("with a finding that has no milestone, lists it as unassigned", () => {
+    const { unassigned } = findingsForMilestone(findings, m0);
+
+    expect(unassigned.map((f) => f.identifier)).toEqual(["TRK-42"]);
   });
 });

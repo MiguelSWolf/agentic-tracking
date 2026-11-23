@@ -63,6 +63,7 @@ jobs:
             --job-status "${{ job.status }}" --execution "${{ steps.claude.outputs.execution_file }}" \
             --out .agent-out/finding.md
           if [ -f .agent-out/finding.md ]; then
-            ISSUE=$(gh pr view "$PR_NUMBER" --json body --jq .body | grep -oE 'TRK-[0-9]+' | head -1 || true)
+            # Only a closing reference (Fixes/Closes/Resolves TRK-n) places the finding in a milestone (TRK-28).
+            ISSUE=$(gh pr view "$PR_NUMBER" --json body --jq .body | node scripts/linear.mjs closing-issue || true)
             node scripts/linear.mjs finding .agent-out/finding.md.title .agent-out/finding.md $ISSUE || true
           fi

@@ -10,10 +10,11 @@
 //   node scripts/linear.mjs finding <title.txt> <body.md> [TRK-n]  open a source:finding issue in TRK-n's milestone,
 //                                                          or comment on the open one
 //                                                          with the same title (docs/workflow/findings.md)
+//   node scripts/linear.mjs closing-issue < body.md       print the TRK-n a PR body closes (Fixes/Closes/Resolves)
 //   node scripts/linear.mjs retro-export <TRK-n> <out.md>  milestone issues + source:finding issues for the retro skill
 
 import { readFileSync, writeFileSync } from "node:fs";
-import { importAudit } from "./linear-lib.mjs";
+import { closingIssue, findingsForMilestone, importAudit } from "./linear-lib.mjs";
 
 const API = "https://api.linear.app/graphql";
 const KEY = process.env.LINEAR_API_KEY;
@@ -266,8 +267,7 @@ async function cmdRetroExport(id, out) {
     return `### ${f.identifier}: ${f.title}\n\n- State: ${f.state.name}\n- Created: ${f.createdAt}\n- Repeats: ${repeats}\n- URL: ${f.url}\n\n${f.description ?? ""}`;
   };
   // Only this milestone's findings (TRK-28). Findings with no milestone are listed apart for a decision.
-  const ours = findings.issues.nodes.filter((f) => f.projectMilestone?.id === milestone.id);
-  const unassigned = findings.issues.nodes.filter((f) => !f.projectMilestone);
+  const { ours, unassigned } = findingsForMilestone(findings.issues.nodes, milestone.id);
   const findingBlocks = ours.map(block).join("\n\n");
   const unassignedBlocks = unassigned.map(block).join("\n\n");
   writeFileSync(
@@ -275,6 +275,13 @@ async function cmdRetroExport(id, out) {
     `# Retro inputs: ${milestone.name}\n\n## Milestone issues\n\n| Issue | Title | State | Labels |\n| --- | --- | --- | --- |\n${rows}\n\n## Linear findings (source:finding)\n\n${findingBlocks || "None."}\n\n## Linear findings with no milestone\n\nDecide whether each belongs to this milestone.\n\n${unassignedBlocks || "None."}\n`,
   );
   console.log(`wrote ${out}`);
+}
+
+// Prints the issue a PR body closes, read from stdin (used by agent-pr-iterate).
+async function cmdClosingIssue() {
+  let body = "";
+  for await (const chunk of process.stdin) body += chunk;
+  console.log(closingIssue(body) ?? "");
 }
 
 const [cmd, ...args] = process.argv.slice(2);
@@ -286,6 +293,7 @@ const commands = {
   "audit-import": cmdAuditImport,
   finding: cmdFinding,
   "retro-export": cmdRetroExport,
+  "closing-issue": cmdClosingIssue,
 };
 if (!commands[cmd]) fail(`unknown command "${cmd}"`);
 await commands[cmd](...args);

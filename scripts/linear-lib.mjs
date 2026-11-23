@@ -51,3 +51,21 @@ export async function importAudit(report, { existingDescriptions, createIssue, l
   }
   return created;
 }
+
+const CLOSING = /\b(?:fix(?:e[sd])?|close[sd]?|resolve[sd]?)\s+(TRK-\d+)\b/i;
+
+/** The issue a PR closes ("Fixes TRK-n"), or null. A bare mention is not a closing reference (TRK-28). */
+export function closingIssue(body) {
+  return body?.match(CLOSING)?.[1]?.toUpperCase() ?? null;
+}
+
+/**
+ * Splits source:finding issues for a milestone retro (TRK-28): the milestone's own findings, and findings
+ * with no milestone, which the retro decides on. Findings of other milestones are left out.
+ */
+export function findingsForMilestone(findings, milestoneId) {
+  return {
+    ours: findings.filter((f) => f.projectMilestone?.id === milestoneId),
+    unassigned: findings.filter((f) => !f.projectMilestone),
+  };
+}
