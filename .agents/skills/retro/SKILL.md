@@ -31,7 +31,7 @@ are `n/a (incomplete…)`, report them as they are.
    (`node scripts/findings-index.mjs --next <milestone>`). Use `Source: workflow` and put the Linear
    issue and run links under Evidence. Merge duplicates into one file and list every link.
 2. **Decide every finding.** Set its `Status` and add a `## Decision` section to its file:
-   - `fixed (#PR)`: point to the PR that fixed it. Check that the PR is merged.
+   - `fixed (#PR)`: point to the PR that fixed it. Check that the PR is merged with `git log --oneline origin/main --grep "(#N)"`; `gh` is not available.
    - `accepted`: explain why living with it is cheaper than fixing it.
    - `open` → propose a follow-up issue. The status stays `open` until the owner creates the
      issue, then becomes `in progress (TRK-n)`.
