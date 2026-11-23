@@ -21,4 +21,4 @@ Process and tooling gaps found while running the agentic loop in M0. They are re
 | [F-011](F-011-test-15-vs-es-06.md) | TEST-15 said `valid/` and `invalid/` folders, while ES-06 and the skill use flat files | Code standards | agent | fixed ([#22](https://github.com/MiguelSWolf/agentic-tracking/pull/22)) |
 | [F-012](F-012-biome-warnings-dont-fail.md) | Recommended Biome rules report at `warn`/`info` and never fail CI | Code standards | agent | in progress (TRK-21) |
 | [F-013](F-013-guard-merge-commit-diff.md) | The protected-paths guard flagged files that changed on main, not on the agent branch | CI | owner | fixed (#27) |
-| [F-014](F-014-adr-only-issue-has-no-committable-diff.md) | An ADR-only issue has no committable change for a CI agent | agent context, protected zones (G5) | agent | open |
+| [F-015](F-015-adr-only-issue-has-no-committable-diff.md) | An ADR-only issue has no committable change for a CI agent | agent context, protected zones (G5) | agent | open |

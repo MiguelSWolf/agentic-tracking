@@ -1,4 +1,4 @@
-# F-014: An ADR-only issue has no committable change for a CI agent
+# F-015: An ADR-only issue has no committable change for a CI agent
 
 - Status: open
 - Area: agent context, protected zones (G5)
@@ -22,4 +22,4 @@ Pick one route for ADR-only issues:
   contains a "Proposed ADR" section; or
 - a dedicated path (for example `docs/adr-proposals/`) that agents may write and the owner moves.
 
-Related, but separate: the retro (TRK-11) records the finding about `**/migrations/` being protected.
+Related, but separate: F-014 (TRK-11 retro, #39) records that `**/migrations/` is protected.
