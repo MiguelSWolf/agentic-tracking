@@ -33,7 +33,13 @@ jobs:
           if [[ "$BRANCH" == audit/* ]]; then
             BAD=$(echo "$CHANGED" | grep -vE '^docs/audits/[^/]+\.(md|json)$' || true)
           else
-            BAD=$(echo "$CHANGED" | grep -E '^(\.github/|\.agents/|\.claude/|AGENTS\.md$|CLAUDE\.md$|docs/adr/|.*/migrations/|scripts/linear(-lib)?\.mjs$|docs/code-standards/)' || true)
+            # "<status> <path>" per path; a rename lists both its old and its new path (TRK-37).
+            STATUS=$(git diff --name-status -M origin/main..."$HEAD_SHA" | awk '{ for (i = 2; i <= NF; i++) print substr($1, 1, 1), $i }')
+            BAD=$(echo "$STATUS" | awk '{ print $2 }' \
+              | grep -E '^(\.github/|\.agents/|\.claude/|AGENTS\.md$|CLAUDE\.md$|docs/adr/|scripts/linear(-lib)?\.mjs$|docs/code-standards/)' || true)
+            # Migrations are add-only: a new file is allowed, a modified, renamed or deleted one is not.
+            BAD_MIG=$(echo "$STATUS" | awk '$2 ~ /(^|\/)migrations\// && $1 != "A" { print $1 " " $2 }' || true)
+            BAD=$(printf '%s\n%s' "$BAD" "$BAD_MIG" | sed '/^$/d')
           fi
           if [ -n "$BAD" ]; then
             echo "::error::Protected paths changed by an agent branch:"; echo "$BAD"; exit 1

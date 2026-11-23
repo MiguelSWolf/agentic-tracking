@@ -47,7 +47,7 @@ jobs:
           claude_args: >-
             --model claude-sonnet-5-5
             --max-turns 40
-            --disallowedTools "Edit(.github/**),Write(.github/**),Edit(.agents/**),Write(.agents/**),Edit(.claude/**),Write(.claude/**),Edit(AGENTS.md),Write(AGENTS.md),Edit(CLAUDE.md),Write(CLAUDE.md),Edit(docs/adr/**),Write(docs/adr/**),Edit(**/migrations/**),Write(**/migrations/**),Edit(scripts/linear.mjs),Write(scripts/linear.mjs),Edit(scripts/linear-lib.mjs),Write(scripts/linear-lib.mjs),Edit(docs/code-standards/**),Write(docs/code-standards/**),Bash(git push --force:*),Bash(gh pr merge:*),Bash(gh pr ready:*)"
+            --disallowedTools "Edit(.github/**),Write(.github/**),Edit(.agents/**),Write(.agents/**),Edit(.claude/**),Write(.claude/**),Edit(AGENTS.md),Write(AGENTS.md),Edit(CLAUDE.md),Write(CLAUDE.md),Edit(docs/adr/**),Write(docs/adr/**),Edit(**/migrations/**),Edit(scripts/linear.mjs),Write(scripts/linear.mjs),Edit(scripts/linear-lib.mjs),Write(scripts/linear-lib.mjs),Edit(docs/code-standards/**),Write(docs/code-standards/**),Bash(git push --force:*),Bash(gh pr merge:*),Bash(gh pr ready:*)"
 
       - name: Record a finding (docs/workflow/findings.md)
         if: always() && steps.claude.outcome != 'skipped'

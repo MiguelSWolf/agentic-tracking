@@ -128,9 +128,12 @@ Agents must **not** modify these paths. CI fails any `agent/*` branch that touch
 and CODEOWNERS requires the owner's review:
 
 ```
-.github/   .agents/   .claude/   AGENTS.md   CLAUDE.md   docs/adr/   **/migrations/
+.github/   .agents/   .claude/   AGENTS.md   CLAUDE.md   docs/adr/   **/migrations/ (existing files)
 scripts/linear.mjs   scripts/linear-lib.mjs   docs/code-standards/
 ```
+
+`**/migrations/` is add-only: agents may add a new migration file, but never modify, rename or delete
+an existing one. An applied migration never changes; a fix is a new migration (TRK-37).
 
 To change a protected file, describe the proposed change in the PR or issue and let the owner apply it.
 
