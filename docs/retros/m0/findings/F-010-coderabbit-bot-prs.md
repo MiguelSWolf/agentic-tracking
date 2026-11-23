@@ -13,3 +13,7 @@ The bot author has no review seat. While the repository is private, CodeRabbit a
 ## Proposed fix
 
 Make the repository public, which gives full reviews on the free plan. Check the history for secrets first.
+
+## Decision
+
+Open, follow-up issue proposed: "Decide on making the repository public, after a secret scan of the history". Owner-only decision.

@@ -13,3 +13,7 @@ The TRK-18 plan run finished its work after 32 turns and was marked failed, beca
 ## Proposed fix
 
 PR #15 raised the plan phase to 40 turns.
+
+## Decision
+
+Fixed. [#15](https://github.com/MiguelSWolf/agentic-tracking/pull/15) is merged (`bc69a42`) and raised the plan phase to 40 turns.

@@ -13,3 +13,7 @@ TRK-7 needed `.env.example`. The agent put the content in the PR body and the ow
 ## Proposed fix
 
 None. This is a sensible default of the action and rarely needed.
+
+## Decision
+
+Accepted. It was needed once in M0 (#17). The owner adding one file is cheaper than widening the sandbox.

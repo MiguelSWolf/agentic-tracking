@@ -13,3 +13,7 @@
 ## Proposed fix
 
 Open a support ticket with OpenAI. Fallback: `openai/codex-action` with an `OPENAI_API_KEY` secret, dispatched by `agent-implement`.
+
+## Decision
+
+Open, follow-up issue proposed: "Run Codex review with `openai/codex-action`, dispatched by agent-implement". The manual workaround costs owner time on every PR. `.github/` is protected.

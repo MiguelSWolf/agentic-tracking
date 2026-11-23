@@ -13,3 +13,7 @@ The `pull_request`-triggered CI run failed without starting any job, while the C
 ## Proposed fix
 
 Find out why the event run starts without jobs. Then fix it, or skip the `pull_request` trigger for `agent/*` branches, because the dispatched run already covers them.
+
+## Decision
+
+Open, follow-up issue proposed: "Investigate the empty `pull_request` CI run on agent PRs, or skip it for `agent/*`". `.github/` is protected, so the owner applies it.

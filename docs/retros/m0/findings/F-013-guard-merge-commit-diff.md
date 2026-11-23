@@ -1,6 +1,6 @@
 # F-013: The protected-paths guard flagged files that changed on main, not on the agent branch
 
-- Status: fixed (#27)
+- Status: fixed ([#27](https://github.com/MiguelSWolf/agentic-tracking/pull/27))
 - Area: CI
 - Source: owner
 - Found: 2026-11-23
@@ -13,3 +13,7 @@ CI on PR #23 failed with "Protected paths changed by an agent branch: `docs/code
 ## Proposed fix
 
 Diff `origin/main...<pull_request.head.sha>`, so the guard lists only the branch's own changes.
+
+## Decision
+
+Fixed. [#27](https://github.com/MiguelSWolf/agentic-tracking/pull/27) is merged (`4eeecf9`).

@@ -13,3 +13,7 @@ The action refused every `pnpm` command because the PR author is not confirmed t
 ## Proposed fix
 
 PR #20 set `restrict_untrusted_prs: "false"`, which is safe because only the owner can trigger the job. An owner token for PRs was rejected: the owner could no longer approve agent PRs (G2).
+
+## Decision
+
+Fixed. [#20](https://github.com/MiguelSWolf/agentic-tracking/pull/20) is merged (`ba3b2e3`).
