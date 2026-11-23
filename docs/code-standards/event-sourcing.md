@@ -457,12 +457,12 @@ transport implementation.
 
 ```ts
 // ✅
-import type { EventBus } from "@agentic-tracking/event-bus";
+import type { EventBus } from "@tracking/event-bus";
 ```
 
 ```ts
 // ❌
-import { PostgresPollingBus } from "@agentic-tracking/event-bus/postgres";
+import { PostgresPollingBus } from "@tracking/event-bus/postgres";
 ```
 
 **Enforced by.** Review only (planned: `Biome: style/noRestrictedImports`; the rule exists in
