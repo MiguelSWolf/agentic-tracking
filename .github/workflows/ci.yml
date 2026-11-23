@@ -83,6 +83,9 @@ jobs:
       - name: ADR index is up to date
         if: steps.has.outputs.pkg == 'yes'
         run: node scripts/adr-index.mjs --check
+      - name: Findings indexes are up to date
+        if: steps.has.outputs.pkg == 'yes'
+        run: node scripts/findings-index.mjs --check
       - if: steps.has.outputs.pkg == 'yes'
         run: pnpm lint
       - if: steps.has.outputs.pkg == 'yes'
