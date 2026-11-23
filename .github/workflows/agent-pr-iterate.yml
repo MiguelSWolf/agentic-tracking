@@ -38,6 +38,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
         if: hashFiles('package.json') != ''
       - uses: anthropics/claude-code-action@v1
+        id: claude
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           # Agent PRs are opened by github-actions[bot], so the action cannot confirm write access
@@ -47,3 +48,19 @@ jobs:
             --model claude-sonnet-5-5
             --max-turns 40
             --disallowedTools "Edit(.github/**),Write(.github/**),Edit(.agents/**),Write(.agents/**),Edit(.claude/**),Write(.claude/**),Edit(AGENTS.md),Write(AGENTS.md),Edit(CLAUDE.md),Write(CLAUDE.md),Edit(docs/adr/**),Write(docs/adr/**),Edit(**/migrations/**),Write(**/migrations/**),Edit(scripts/linear.mjs),Write(scripts/linear.mjs),Edit(docs/code-standards/**),Write(docs/code-standards/**),Bash(git push --force:*),Bash(gh pr merge:*),Bash(gh pr ready:*)"
+
+      - name: Record a finding (docs/workflow/findings.md)
+        if: always() && steps.claude.outcome != 'skipped'
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+          LINEAR_TEAM_KEY: ${{ vars.LINEAR_TEAM_KEY || 'TRK' }}
+          PR_NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
+        run: |
+          mkdir -p .agent-out
+          node scripts/run-findings.mjs --workflow agent-pr-iterate --target "PR #$PR_NUMBER" \
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --job-status "${{ job.status }}" --execution "${{ steps.claude.outputs.execution_file }}" \
+            --out .agent-out/finding.md
+          if [ -f .agent-out/finding.md ]; then
+            node scripts/linear.mjs finding .agent-out/finding.md.title .agent-out/finding.md || true
+          fi
