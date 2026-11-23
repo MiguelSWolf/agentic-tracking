@@ -28,16 +28,12 @@ jobs:
           # and the merge commit then drags in protected files changed on main (F-013).
           HEAD_SHA="${{ github.event.pull_request.head.sha }}"
           [ -n "$HEAD_SHA" ] || HEAD_SHA=HEAD
-          CHANGED=$(git diff --name-only origin/main..."$HEAD_SHA")
-          echo "$CHANGED"
-          if [[ "$BRANCH" == audit/* ]]; then
-            BAD=$(echo "$CHANGED" | grep -vE '^docs/audits/[^/]+\.(md|json)$' || true)
-          else
-            BAD=$(echo "$CHANGED" | grep -E '^(\.github/|\.agents/|\.claude/|AGENTS\.md$|CLAUDE\.md$|docs/adr/|.*/migrations/|scripts/linear(-lib)?\.mjs$|docs/code-standards/)' || true)
-          fi
-          if [ -n "$BAD" ]; then
-            echo "::error::Protected paths changed by an agent branch:"; echo "$BAD"; exit 1
-          fi
+          git diff --name-status -M origin/main..."$HEAD_SHA"
+          # NUL-delimited, never quoted: paths with spaces or non-ASCII characters stay whole (TRK-37).
+          # The guard script runs from main, so a branch cannot weaken the check it is judged by.
+          git show origin/main:scripts/guard-paths-lib.mjs > "$RUNNER_TEMP/guard-paths-lib.mjs"
+          git show origin/main:scripts/guard-paths.mjs > "$RUNNER_TEMP/guard-paths.mjs"
+          git diff --name-status -M -z origin/main..."$HEAD_SHA" | node "$RUNNER_TEMP/guard-paths.mjs" "$BRANCH"
 
   validate-audit:
     if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'audit/')
