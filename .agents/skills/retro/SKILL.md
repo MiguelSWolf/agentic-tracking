@@ -43,8 +43,8 @@ are `n/a (incomplete…)`, report them as they are.
    learn between runs, but the rules they read do. Propose that change, not one fix per comment.
 4. **Calibrate the gates (ADR-0011).**
    - Copy the metrics table as it is.
-   - Compute the share of **`size:S`** agent PRs merged unchanged. Map each merged agent PR
-     (`Fixes TRK-n`) to its issue's size label from the inputs, and show the PRs you counted.
+   - Copy the **`size:S` merged unchanged** section from `metrics.md` (computed by `agent-metrics --issues`,
+     TRK-25). If it says `incomplete`, report it as incomplete with its reasons and do not count by hand.
    - Apply the rule exactly: G1 becomes optional for `size:S` only after **two consecutive
      milestones** at ≥ 80%. G2 and G5 are never relaxed. The first milestone is a baseline.
    - Never recommend a gate change that ADR-0011 does not allow. If the numbers suggest the rule

@@ -204,7 +204,10 @@ export function parseIssues(markdown) {
     issues.set(m[1], size === null ? null : size[1]);
   }
   if (issues.size === 0) throw new Error("Issues file has no issue rows in the milestone table");
-  const partial = /^Export complete: false$/m.test(markdown) || issues.size >= EXPORT_PAGE_SIZE;
+  // The exporter writes "Export complete: true|false" (TRK-25). Older exports without the line fall back
+  // to the page-size heuristic.
+  const marker = markdown.match(/^Export complete: (true|false)$/m)?.[1];
+  const partial = marker === undefined ? issues.size >= EXPORT_PAGE_SIZE : marker === "false";
   return { milestone: heading[1].trim(), issues, partial };
 }
 

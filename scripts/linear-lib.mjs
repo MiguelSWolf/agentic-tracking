@@ -69,3 +69,25 @@ export function findingsForMilestone(findings, milestoneId) {
     unassigned: findings.filter((f) => !f.projectMilestone),
   };
 }
+
+/**
+ * Reads every page of a cursor-paginated list (TRK-25). `fetchPage(after)` returns
+ * `{ nodes, pageInfo: { hasNextPage, endCursor } }`. Completeness comes from the last page read:
+ * the export is complete only when that page says `hasNextPage: false`. A missing or repeated cursor,
+ * or hitting `maxPages`, stops the loop and leaves the export marked incomplete.
+ */
+export async function readAllPages(fetchPage, { maxPages = 40 } = {}) {
+  const nodes = [];
+  const seen = new Set();
+  let after = null;
+  for (let page = 0; page < maxPages; page += 1) {
+    const { nodes: pageNodes, pageInfo } = await fetchPage(after);
+    nodes.push(...pageNodes);
+    if (!pageInfo.hasNextPage) return { nodes, complete: true };
+    const cursor = pageInfo.endCursor;
+    if (!cursor || seen.has(cursor)) return { nodes, complete: false };
+    seen.add(cursor);
+    after = cursor;
+  }
+  return { nodes, complete: false };
+}

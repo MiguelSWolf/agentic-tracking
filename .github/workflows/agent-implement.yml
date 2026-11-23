@@ -93,8 +93,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           if node scripts/linear.mjs require-label "$ISSUE_ID" type:retro > /dev/null 2>&1; then
-            node scripts/agent-metrics.mjs > .agent-out/metrics.md 2> .agent-out/metrics.err || cp .agent-out/metrics.err .agent-out/metrics.md
             node scripts/linear.mjs retro-export "$ISSUE_ID" .agent-out/retro-inputs.md
+            node scripts/agent-metrics.mjs --issues .agent-out/retro-inputs.md > .agent-out/metrics.md 2> .agent-out/metrics.err \
+              || cp .agent-out/metrics.err .agent-out/metrics.md
             # Review comments and @claude requests on merged agent PRs (recurring corrections).
             for n in $(gh pr list --state merged --limit 200 --json number,headRefName \
                 --jq '.[] | select(.headRefName | startswith("agent/")) | .number'); do
