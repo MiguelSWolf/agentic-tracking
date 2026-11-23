@@ -1,6 +1,6 @@
 # F-004: The agent fixes review comments but does not reply in the review threads
 
-- Status: open
+- Status: fixed ([#26](https://github.com/MiguelSWolf/agentic-tracking/pull/26))
 - Area: Gate G3
 - Source: owner
 - Found: 2026-11-23
@@ -13,3 +13,7 @@ On PRs #18 and #19 the agent committed the fixes and posted a summary comment, b
 ## Proposed fix
 
 The `review-pr` skill and the iteration part of `issue-flow` say to reply to each thread with the fixing commit.
+
+## Decision
+
+Fixed by rule. `review-pr` Respond mode, step 3, says "Reply to every thread". Check in M1 that iterations actually do it.
