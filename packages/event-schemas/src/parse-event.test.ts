@@ -1,5 +1,6 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 import { parseEvent } from "./parse-event.js";
+import type { AnyEventV1 } from "./registry.js";
 import { loadFixtures } from "./testing/contract.js";
 
 const pageViewed = loadFixtures("PageViewed.v1").valid[0]?.input;
@@ -13,11 +14,13 @@ describe("parseEvent", () => {
   it("with a valid conversion, returns ok and narrows the payload by type", () => {
     const result = parseEvent(conversion);
 
-    expect(result.ok).toBe(true);
-    if (result.ok && result.event.type === "ConversionRecorded") {
-      expectTypeOf(result.event.payload.conversion_id).toBeString();
-      expect(result.event.payload.conversion_id).toBe("order_10482");
-    }
+    expect(result).toMatchObject({
+      ok: true,
+      event: { type: "ConversionRecorded", payload: { conversion_id: "order_10482" } },
+    });
+    expectTypeOf<
+      Extract<AnyEventV1, { type: "ConversionRecorded" }>["payload"]["conversion_id"]
+    >().toBeString();
   });
 
   it("with an unknown type, fails at type", () => {

@@ -23,7 +23,7 @@ the zod schemas in `packages/event-schemas`.
 | `ElementClicked` | `selector` (≤ 500), `label?` (≤ 100, from `data-track-label`), `href?` |
 | `CustomEventTracked` | `name` (≤ 100), `properties?` (flat string, number, boolean or null values) |
 | `Identified` | empty; envelope `user_id` is required |
-| `ConversionRecorded` | `conversion_id`, `value?` (≥ 0), `currency?` (ISO 4217, upper case); `currency` is required when `value` is present |
+| `ConversionRecorded` | `conversion_id`, `value?` (≥ 0), `currency?` (three upper-case letters, format check only; ISO 4217 membership is not validated); `currency` is required when `value` is present |
 
 **Parsing.** `parseEvent(unknown)` returns `{ ok: true, event }` or `{ ok: false, error }` (a `ZodError`). It
 never throws for invalid input. An unknown `type` or an unregistered `version` fails at `type` or `version`.
