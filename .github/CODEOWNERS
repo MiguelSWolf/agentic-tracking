@@ -8,5 +8,6 @@
 /CLAUDE.md        @MiguelSWolf
 /docs/adr/        @MiguelSWolf
 /scripts/linear.mjs @MiguelSWolf
+/scripts/linear-lib.mjs @MiguelSWolf
 **/migrations/    @MiguelSWolf
 /docs/code-standards/ @MiguelSWolf

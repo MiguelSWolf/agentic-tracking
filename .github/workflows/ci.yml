@@ -33,7 +33,7 @@ jobs:
           if [[ "$BRANCH" == audit/* ]]; then
             BAD=$(echo "$CHANGED" | grep -vE '^docs/audits/[^/]+\.(md|json)$' || true)
           else
-            BAD=$(echo "$CHANGED" | grep -E '^(\.github/|\.agents/|\.claude/|AGENTS\.md$|CLAUDE\.md$|docs/adr/|.*/migrations/|scripts/linear\.mjs$|docs/code-standards/)' || true)
+            BAD=$(echo "$CHANGED" | grep -E '^(\.github/|\.agents/|\.claude/|AGENTS\.md$|CLAUDE\.md$|docs/adr/|.*/migrations/|scripts/linear(-lib)?\.mjs$|docs/code-standards/)' || true)
           fi
           if [ -n "$BAD" ]; then
             echo "::error::Protected paths changed by an agent branch:"; echo "$BAD"; exit 1
