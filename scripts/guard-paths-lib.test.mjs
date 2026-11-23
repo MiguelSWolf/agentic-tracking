@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { findViolations, parseNameStatusZ } from "./guard-paths-lib.mjs";
 
 const z = (...fields) => `${fields.join("\0")}\0`;
-const violations = (...fields) => findViolations(parseNameStatusZ(z(...fields)));
+const violations = (...fields) => findViolations(parseNameStatusZ(z(...fields)), "agent/trk-1-x");
+const auditViolations = (...fields) => findViolations(parseNameStatusZ(z(...fields)), "audit/m1");
 
 describe("parseNameStatusZ", () => {
   it("with a rename, lists both the old and the new path", () => {
@@ -55,5 +56,35 @@ describe("findViolations", () => {
 
   it("with a rename out of a protected zone, fails on the old path", () => {
     expect(violations("R090", "docs/adr/0001.md", "docs/notes.md")).toEqual(["R docs/adr/0001.md"]);
+  });
+
+  it("with a rename into a protected zone, fails on the new path", () => {
+    expect(violations("R100", "docs/notes.md", ".agents/skills/x/SKILL.md")).toEqual([
+      "R .agents/skills/x/SKILL.md",
+    ]);
+  });
+
+  it("with a change to the guard scripts themselves, fails", () => {
+    expect(
+      violations("M", "scripts/guard-paths-lib.mjs", "M", "scripts/guard-paths.mjs"),
+    ).toHaveLength(2);
+  });
+
+  it("with an added non-ASCII migration in a package, passes", () => {
+    expect(violations("A", "packages/x/migrations/0002 café.sql")).toEqual([]);
+  });
+});
+
+describe("findViolations on an audit branch", () => {
+  it("with only the audit report files, passes", () => {
+    expect(auditViolations("A", "docs/audits/m1.md", "A", "docs/audits/m1.json")).toEqual([]);
+  });
+
+  it("with any file outside docs/audits, fails", () => {
+    expect(auditViolations("A", "docs/audits/m1.md", "M", "README.md")).toEqual(["M README.md"]);
+  });
+
+  it("with a nested file under docs/audits, fails", () => {
+    expect(auditViolations("A", "docs/audits/m1/extra.md")).toHaveLength(1);
   });
 });

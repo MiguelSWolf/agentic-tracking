@@ -1,10 +1,12 @@
-// Gate G5 path classification for agent branches (TRK-37).
+// Gate G5 path classification for agent and audit branches (TRK-37).
 // Input is the raw output of `git diff --name-status -M -z`: NUL-delimited, never quoted,
 // so spaces, newlines and non-ASCII characters in paths are safe.
+// Protected zone itself: this file and guard-paths.mjs decide what an agent may change.
 
 const PROTECTED =
-  /^(\.github\/|\.agents\/|\.claude\/|AGENTS\.md$|CLAUDE\.md$|docs\/adr\/|scripts\/linear(-lib)?\.mjs$|docs\/code-standards\/)/;
+  /^(\.github\/|\.agents\/|\.claude\/|AGENTS\.md$|CLAUDE\.md$|docs\/adr\/|scripts\/linear(-lib)?\.mjs$|scripts\/guard-paths(-lib)?\.mjs$|docs\/code-standards\/)/;
 const MIGRATIONS = /(^|\/)migrations\//;
+const AUDIT_ALLOWED = /^docs\/audits\/[^/]+\.(md|json)$/;
 
 // Returns [{ status, path }]. A rename or copy (R/C) yields both its old and its new path.
 export function parseNameStatusZ(raw) {
@@ -22,9 +24,11 @@ export function parseNameStatusZ(raw) {
   return entries;
 }
 
-// Protected paths fail on any change; migrations fail unless the file was added.
-export function findViolations(entries) {
-  return entries
-    .filter(({ status, path }) => PROTECTED.test(path) || (MIGRATIONS.test(path) && status !== "A"))
-    .map(({ status, path }) => `${status} ${path}`);
+// audit/* branches may only touch docs/audits/<file>.md|json. Other (agent) branches: protected paths
+// fail on any change, and migrations fail unless the file was added.
+export function findViolations(entries, branch = "") {
+  const bad = branch.startsWith("audit/")
+    ? ({ path }) => !AUDIT_ALLOWED.test(path)
+    : ({ status, path }) => PROTECTED.test(path) || (MIGRATIONS.test(path) && status !== "A");
+  return entries.filter(bad).map(({ status, path }) => `${status} ${path}`);
 }

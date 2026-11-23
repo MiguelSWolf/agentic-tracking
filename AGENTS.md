@@ -129,7 +129,8 @@ and CODEOWNERS requires the owner's review:
 
 ```
 .github/   .agents/   .claude/   AGENTS.md   CLAUDE.md   docs/adr/   **/migrations/ (existing files)
-scripts/linear.mjs   scripts/linear-lib.mjs   docs/code-standards/
+scripts/linear.mjs   scripts/linear-lib.mjs   scripts/guard-paths.mjs   scripts/guard-paths-lib.mjs
+docs/code-standards/
 ```
 
 `**/migrations/` is add-only: agents may add a new migration file, but never modify, rename or delete
