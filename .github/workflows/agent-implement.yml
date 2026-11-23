@@ -88,6 +88,24 @@ jobs:
           mkdir -p .agent-out
           node scripts/linear.mjs get "$ISSUE_ID" .agent-out/issue.md
 
+      - name: Retro inputs (issues labelled type:retro only)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if node scripts/linear.mjs require-label "$ISSUE_ID" type:retro > /dev/null 2>&1; then
+            node scripts/agent-metrics.mjs > .agent-out/metrics.md 2> .agent-out/metrics.err || cp .agent-out/metrics.err .agent-out/metrics.md
+            node scripts/linear.mjs retro-export "$ISSUE_ID" .agent-out/retro-inputs.md
+            # Review comments and @claude requests on merged agent PRs (recurring corrections).
+            for n in $(gh pr list --state merged --limit 200 --json number,headRefName \
+                --jq '.[] | select(.headRefName | startswith("agent/")) | .number'); do
+              echo "## PR #$n"
+              gh api "repos/${{ github.repository }}/pulls/$n/comments" \
+                --jq '.[] | "- [\(.user.login)] \(.path): \(.body | gsub("\n"; " ") | .[0:500])"'
+              gh api "repos/${{ github.repository }}/issues/$n/comments" \
+                --jq '.[] | select(.body | contains("@claude")) | "- [\(.user.login)] request: \(.body | gsub("\n"; " ") | .[0:500])"'
+            done > .agent-out/reviews.md || true
+          fi
+
       - name: Claude
         id: claude
         uses: anthropics/claude-code-action@v1
@@ -100,6 +118,7 @@ jobs:
             Use the `issue-flow` skill. PHASE=${{ env.PHASE }}.
             The Linear issue (with all comments, including any plan feedback) is in `.agent-out/issue.md`.
             Repository rules are in AGENTS.md. Never touch protected zones.
+            If `.agent-out/retro-inputs.md` exists, this is a milestone retro: also use the `retro` skill (inputs: `.agent-out/retro-inputs.md`, `.agent-out/metrics.md`, `.agent-out/reviews.md`).
             ${{ env.PHASE == 'plan' && 'Write only `.agent-out/plan.md`. Do not modify any other file. Do not commit.' || 'The plan was approved by the owner. Implement it and commit on branch `agent/trk-<n>-<slug>`. Do NOT push and do NOT open the PR: the workflow does both after you finish. Write the PR body to `.agent-out/pr.md` and a one-line Conventional Commits PR title to `.agent-out/pr-title.txt`.' }}
             Run one command per Bash call. Avoid pipes, `&&` chains and redirections into protected paths.
           claude_args: >-

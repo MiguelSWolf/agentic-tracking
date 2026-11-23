@@ -38,7 +38,7 @@ Get the next ID with `node scripts/findings-index.mjs --next <milestone>`.
 
 ## How they are closed
 
-The milestone retro (`retro` skill) reads every finding of the milestone together with the
+The milestone retro ([`retro` skill](../../.agents/skills/retro/SKILL.md), run on the milestone issue labelled `type:retro`) reads every finding of the milestone together with the
 calibration metrics (`pnpm agent:metrics`) and the audit report. It decides for each finding:
 
 - **fix:** open a Linear issue and set `Status: in progress (TRK-n)`;
