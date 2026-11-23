@@ -34,6 +34,10 @@ Process gaps found along the way: [findings.md](findings.md).
 5. CodeRabbit and the owner review; Claude iterates on `@claude` comments (G2, G3).
 6. Owner merges. The PR contains `Fixes TRK-<n>`, which closes the issue.
 
+## Metrics
+
+- [Agent calibration metrics](agent-metrics.md): `pnpm agent:metrics`.
+
 ## Sources
 
 - Rules for every agent: [`AGENTS.md`](../../AGENTS.md)
