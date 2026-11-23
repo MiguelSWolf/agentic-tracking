@@ -9,6 +9,7 @@
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/biome.json"]
     },
     "//#lint:root": {
+      "passThroughEnv": ["LINEAR_API_KEY", "LINEAR_TEAM_KEY", "LINEAR_OWNER_ID"],
       "inputs": [
         "package.json",
         "turbo.json",
