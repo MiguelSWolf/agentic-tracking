@@ -20,7 +20,7 @@ Process gaps found along the way: [findings.md](findings.md).
 | --- | --- | --- |
 | G0 | Issue is ready for an agent (`agent:ready`) | Linear label, see [`.github/linear-labels.md`](../../.github/linear-labels.md) |
 | G1 | Owner approves the plan (`plan:approved`) | `.github/workflows/agent-implement.yml` |
-| G2 | Owner reviews the draft PR and merges | Branch ruleset, CODEOWNERS |
+| G2 | Owner reviews the PR and merges | Branch ruleset, CODEOWNERS |
 | G3 | Owner iterates on the PR with `@claude` | `.github/workflows/agent-pr-iterate.yml` |
 | G4 | Audit findings become Linear issues | `.github/workflows/audit-to-linear.yml` |
 | G5 | Protected zones need the owner's review | `.github/CODEOWNERS`, `guard-protected-paths` job in `.github/workflows/ci.yml` |
@@ -30,7 +30,7 @@ Process gaps found along the way: [findings.md](findings.md).
 1. Linear issue gets `agent:ready` (G0).
 2. Claude writes a plan as a Linear comment.
 3. Owner replies with feedback or adds `plan:approved` (G1).
-4. Claude implements on `agent/trk-<n>-<slug>`; the workflow opens a draft PR.
+4. Claude implements on `agent/trk-<n>-<slug>`; the workflow opens a PR, ready for review.
 5. CodeRabbit and the owner review; Claude iterates on `@claude` comments (G2, G3).
 6. Owner merges. The PR contains `Fixes TRK-<n>`, which closes the issue.
 

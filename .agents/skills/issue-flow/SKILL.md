@@ -1,6 +1,6 @@
 ---
 name: issue-flow
-description: Use when working a Linear issue (TRK-<n>) end to end — planning it (plan phase) or implementing it into a draft PR (implement phase). Not for audits or ADR writing.
+description: Use when working a Linear issue (TRK-<n>) end to end — planning it (plan phase) or implementing it into a PR (implement phase). Not for audits or ADR writing.
 ---
 
 # Issue flow (Linear → plan → PR)
@@ -63,7 +63,7 @@ Read `AGENTS.md`, the ADR index (`docs/adr/README.md`) and every ADR it points y
    Commit it separately: `docs(retros): record F-NNN <slug>`. Product bugs are not findings: put them under
    "Out of scope findings".
 7. Stop. **Do not push and do not open the PR**: the workflow pushes your branch and opens the
-   draft PR with the files above. `.agent-out/` is git-ignored; never commit it.
+   PR, ready for review, with the files above. `.agent-out/` is git-ignored; never commit it.
 
 ## Shell hygiene (CI permissions are strict)
 

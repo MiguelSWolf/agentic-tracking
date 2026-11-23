@@ -39,5 +39,5 @@ Linear: follow [.github/linear-labels.md](.github/linear-labels.md) and import [
 1. Linear: issue in Todo + label `agent:ready` (G0).
 2. GitHub → Actions → **agent-implement** → `issue_id=TRK-n`, `phase=plan` → plan appears on the Linear issue.
 3. Reply with changes (and re-run plan) or add `plan:approved` (G1).
-4. Run again with `phase=implement` → draft PR, CodeRabbit reviews it.
+4. Run again with `phase=implement` → PR ready for review.
 5. `@claude <request>` on the PR to iterate (G3). Mark ready, approve, merge (G2).

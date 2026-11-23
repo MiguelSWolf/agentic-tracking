@@ -75,7 +75,7 @@ ${comments || "(none)"}
 
 // Human context for the PR body: the issue description plus the plan and owner feedback,
 // without the workflow's own status comments. Keeps GitHub the single place to read a change.
-const AUTOMATED = [/^Agent run failed/, /^Draft PR opened by Claude/];
+const AUTOMATED = [/^Agent run failed/, /^(Draft )?PR opened by Claude/];
 
 async function cmdPrContext(id, out) {
   const i = await getIssue(id);
