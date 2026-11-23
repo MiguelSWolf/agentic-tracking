@@ -53,6 +53,25 @@ jobs:
           "$RUNNER_TEMP/ajv/node_modules/.bin/ajv" validate --spec=draft2020 \
             -c "$RUNNER_TEMP/ajv/node_modules/ajv-formats" \
             -s .agents/skills/code-health-audit/schema.json -d "docs/audits/*.json"
+      - name: The validator rejects an invalid report
+        run: |
+          # Guards against a check that passes everything (TRK-22): a date-time violation must fail.
+          AJV="$RUNNER_TEMP/ajv/node_modules/.bin/ajv"
+          cat > "$RUNNER_TEMP/invalid-audit.json" <<'JSON'
+          {"milestone": "M0", "generated_at": "not-a-date", "auditor": "ci", "findings": []}
+          JSON
+          set +e
+          OUT=$("$AJV" validate --spec=draft2020 -c "$RUNNER_TEMP/ajv/node_modules/ajv-formats" \
+            -s .agents/skills/code-health-audit/schema.json -d "$RUNNER_TEMP/invalid-audit.json" 2>&1)
+          STATUS=$?
+          set -e
+          echo "$OUT"
+          # Only the expected schema rejection counts: a CLI error or a missing file must fail this step too.
+          if [ "$STATUS" -eq 0 ] || ! grep -q 'invalid-audit.json invalid' <<<"$OUT" \
+              || ! grep -q "instancePath: '/generated_at'" <<<"$OUT" || ! grep -q 'must match format "date-time"' <<<"$OUT"; then
+            echo "::error::expected validate-audit to reject generated_at with a date-time format error"
+            exit 1
+          fi
 
   checks:
     runs-on: ubuntu-latest
