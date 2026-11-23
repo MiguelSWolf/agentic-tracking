@@ -14,7 +14,7 @@
 //   node scripts/linear.mjs retro-export <TRK-n> <out.md>  milestone issues + source:finding issues for the retro skill
 
 import { readFileSync, writeFileSync } from "node:fs";
-import { closingIssue, findingsForMilestone, importAudit } from "./linear-lib.mjs";
+import { closingIssue, findingsForMilestone, importAudit, readAllPages } from "./linear-lib.mjs";
 
 const API = "https://api.linear.app/graphql";
 const KEY = process.env.LINEAR_API_KEY;
@@ -232,10 +232,8 @@ async function cmdFinding(titleFile, bodyFile, relatedId) {
 
 async function cmdRetroExport(id, out) {
   // Every page of the milestone's issues (TRK-25): a partial list would understate the size:S cohort.
-  const nodes = [];
   let milestone;
-  let after = null;
-  for (let page = 0; page < 40; page += 1) {
+  const { nodes, complete: exportComplete } = await readAllPages(async (after) => {
     const data = await gql(
       `query($id: String!, $after: String) {
         issue(id: $id) {
@@ -253,11 +251,8 @@ async function cmdRetroExport(id, out) {
     );
     milestone = data.issue?.projectMilestone;
     if (!milestone) fail(`${id} has no project milestone`);
-    nodes.push(...milestone.issues.nodes);
-    after = milestone.issues.pageInfo.hasNextPage ? milestone.issues.pageInfo.endCursor : null;
-    if (!after) break;
-  }
-  const exportComplete = after === null;
+    return milestone.issues;
+  });
   milestone.issues = { nodes };
   const { teamId, labelId } = await teamContext(FINDING_LABEL);
   const findings = await gql(
