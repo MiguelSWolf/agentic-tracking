@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   computeMetrics,
+  computeSizeCohort,
+  fixesRefs,
   hasClaudeRequest,
   isAgentPr,
   median,
   normalisePr,
   parseArgs,
+  parseIssues,
   renderTable,
 } from "./agent-metrics-lib.mjs";
 
@@ -21,15 +24,15 @@ const pr = (overrides) => ({
 
 describe("parseArgs", () => {
   it("given --since with a space, returns the date", () => {
-    expect(parseArgs(["--since", "2026-11-01"])).toEqual({ since: "2026-11-01" });
+    expect(parseArgs(["--since", "2026-11-01"])).toEqual({ since: "2026-11-01", issues: null });
   });
 
   it("given --since=value, returns the date", () => {
-    expect(parseArgs(["--since=2026-11-01"])).toEqual({ since: "2026-11-01" });
+    expect(parseArgs(["--since=2026-11-01"])).toEqual({ since: "2026-11-01", issues: null });
   });
 
   it("given no arguments, returns a null since", () => {
-    expect(parseArgs([])).toEqual({ since: null });
+    expect(parseArgs([])).toEqual({ since: null, issues: null });
   });
 
   it("given an impossible date, throws", () => {
@@ -309,5 +312,207 @@ describe("timeline truncation", () => {
     const n = normalisePr(item, [review]);
     expect(n.roundsIncomplete).toBe(true);
     expect(n.timelineIncomplete).toBe(false);
+  });
+});
+
+const retroInputs = `# Retro inputs: M0 Foundations
+
+## Milestone issues
+
+| Issue | Title | State | Labels |
+| --- | --- | --- | --- |
+| TRK-7 | Add metrics | Done | size:S, type:chore |
+| TRK-9 | Wire CI | Done | size:M, area:ci |
+| TRK-11 | Fix docs | Done | type:docs |
+
+## Linear findings (source:finding)
+
+None.
+`;
+
+const sizeIssues = (entries) => new Map(Object.entries(entries));
+const cohortPr = (number, fixes, overrides = {}) =>
+  pr({ number, fixes, url: `https://github.com/o/r/pull/${number}`, ...overrides });
+
+describe("parseArgs --issues", () => {
+  it("given --issues with a path, returns the path", () => {
+    expect(parseArgs(["--issues", ".agent-out/retro-inputs.md"]).issues).toBe(
+      ".agent-out/retro-inputs.md",
+    );
+  });
+
+  it("given --issues without a value, throws", () => {
+    expect(() => parseArgs(["--issues"])).toThrow(/Missing value for --issues/);
+  });
+});
+
+describe("parseIssues", () => {
+  it("given a retro-inputs export, maps each TRK id to its size label", () => {
+    const parsed = parseIssues(retroInputs);
+
+    expect(parsed.milestone).toBe("M0 Foundations");
+    expect(parsed.issues.get("TRK-7")).toBe("size:S");
+    expect(parsed.issues.get("TRK-9")).toBe("size:M");
+  });
+
+  it("given an issue with no size label, maps it to null", () => {
+    expect(parseIssues(retroInputs).issues.get("TRK-11")).toBeNull();
+  });
+
+  it("given a full export page of issues, flags the export as partial", () => {
+    const rows = Array.from({ length: 250 }, (_, i) => `| TRK-${i + 1} | T | Done | size:S |`);
+    const md = `# Retro inputs: M0\n\n## Milestone issues\n\n| Issue | Title | State | Labels |\n| --- | --- | --- | --- |\n${rows.join("\n")}\n`;
+
+    expect(parseIssues(md).partial).toBe(true);
+    expect(parseIssues(retroInputs).partial).toBe(false);
+  });
+
+  it("given an explicit incomplete marker, flags the export as partial", () => {
+    expect(parseIssues(`${retroInputs}\nExport complete: false\n`).partial).toBe(true);
+  });
+
+  it("given a file without the milestone table, throws", () => {
+    expect(() => parseIssues("# Retro inputs: M0\n\nNothing here.\n")).toThrow(/Milestone issues/);
+  });
+});
+
+describe("fixesRefs", () => {
+  it("given `Fixes TRK-25` in the body, returns TRK-25", () => {
+    expect(fixesRefs("## Why\n\nFixes TRK-25\n")).toEqual(["TRK-25"]);
+  });
+
+  it("given no Fixes line, returns an empty list", () => {
+    expect(fixesRefs("Just a description")).toEqual([]);
+  });
+
+  it("given TRK-25 mentioned without Fixes, ignores it", () => {
+    expect(fixesRefs("Related to TRK-25")).toEqual([]);
+  });
+
+  it("given one real closing line and examples, returns only the real one", () => {
+    const body = [
+      "Fixes TRK-25",
+      "",
+      "> Fixes TRK-1",
+      "",
+      "```",
+      "Fixes TRK-2",
+      "```",
+      "",
+      "Write `Fixes TRK-3` in the body, or say we Fixes TRK-4 later.",
+    ].join("\n");
+
+    expect(fixesRefs(body)).toEqual(["TRK-25"]);
+  });
+
+  it("given a shorter inner fence inside a longer block, ignores the example after it", () => {
+    const body = ["````md", "```", "Fixes TRK-99", "````", "", "Fixes TRK-25"].join("\n");
+
+    expect(fixesRefs(body)).toEqual(["TRK-25"]);
+  });
+});
+
+describe("computeSizeCohort", () => {
+  const issues = sizeIssues({ "TRK-7": "size:S", "TRK-8": "size:S", "TRK-9": "size:M" });
+
+  it("given size:S and size:M member PRs, counts only size:S in the denominator", () => {
+    const cohort = computeSizeCohort([cohortPr(1, ["TRK-7"]), cohortPr(2, ["TRK-9"])], issues);
+
+    expect(cohort.denominator).toBe(1);
+    expect(cohort.complete).toBe(true);
+  });
+
+  it("given one unchanged and one changed size:S PR, returns 1 of 2", () => {
+    const changed = cohortPr(2, ["TRK-8"], { commitDates: ["2026-11-20T11:00:00Z"] });
+
+    const cohort = computeSizeCohort([cohortPr(1, ["TRK-7"]), changed], issues);
+
+    expect([cohort.numerator, cohort.denominator]).toEqual([1, 2]);
+  });
+
+  it("given a PR fixing an issue outside the milestone, skips it", () => {
+    const cohort = computeSizeCohort([cohortPr(1, ["TRK-99"])], issues);
+
+    expect(cohort.complete).toBe(true);
+    expect(cohort.denominator).toBe(0);
+  });
+
+  it("given a merged PR without Fixes, marks the cohort incomplete", () => {
+    const cohort = computeSizeCohort([cohortPr(3, [])], issues);
+
+    expect(cohort.complete).toBe(false);
+    expect(cohort.reasons[0]).toContain("PR #3");
+  });
+
+  it("given a PR with two Fixes references, marks it incomplete", () => {
+    const cohort = computeSizeCohort([cohortPr(4, ["TRK-7", "TRK-9"])], issues);
+
+    expect(cohort.complete).toBe(false);
+    expect(cohort.reasons[0]).toContain("PR #4");
+  });
+
+  it("given a member issue with no size label, marks it incomplete", () => {
+    const cohort = computeSizeCohort([cohortPr(5, ["TRK-11"])], sizeIssues({ "TRK-11": null }));
+
+    expect(cohort.complete).toBe(false);
+    expect(cohort.reasons[0]).toContain("TRK-11");
+  });
+
+  it("given a truncated timeline on a size:S PR, marks it incomplete", () => {
+    const cohort = computeSizeCohort(
+      [cohortPr(6, ["TRK-7"], { timelineIncomplete: true })],
+      issues,
+    );
+
+    expect(cohort.complete).toBe(false);
+  });
+
+  it("given the PR list cap was hit, marks it incomplete", () => {
+    const cohort = computeSizeCohort([cohortPr(1, ["TRK-7"])], issues, { listTruncated: true });
+
+    expect(cohort.complete).toBe(false);
+  });
+
+  it("given a possibly partial issues export, marks it incomplete", () => {
+    const cohort = computeSizeCohort([cohortPr(1, ["TRK-7"])], issues, { issuesPartial: true });
+
+    expect(cohort.complete).toBe(false);
+    expect(cohort.reasons[0]).toContain("partial");
+  });
+
+  it("given a size:S issue with no merged PR, lists it as informational only", () => {
+    const cohort = computeSizeCohort([cohortPr(1, ["TRK-7"])], issues);
+
+    expect(cohort.sizeSWithoutPr).toEqual(["TRK-8"]);
+    expect(cohort.complete).toBe(true);
+  });
+});
+
+describe("renderTable cohort", () => {
+  const metrics = computeMetrics([]);
+  const issues = sizeIssues({ "TRK-7": "size:S" });
+
+  it("given a complete cohort, renders numerator, denominator, percentage and PR links", () => {
+    const cohort = computeSizeCohort([cohortPr(1, ["TRK-7"])], issues);
+
+    const out = renderTable(metrics, { repo: "o/r", cohort, milestone: "M0" });
+
+    expect(out).toContain("`size:S` merged unchanged: M0");
+    expect(out).toContain("1 of 1 (100%)");
+    expect(out).toContain("https://github.com/o/r/pull/1 (TRK-7, unchanged)");
+  });
+
+  it("given an incomplete cohort, renders n/a with the reasons", () => {
+    const cohort = computeSizeCohort([cohortPr(3, [])], issues);
+
+    const out = renderTable(metrics, { repo: "o/r", cohort, milestone: "M0" });
+
+    expect(out).toContain("n/a (incomplete: PR #3");
+  });
+
+  it("given no issues file, renders the table unchanged", () => {
+    const out = renderTable(metrics, { repo: "o/r" });
+
+    expect(out).not.toContain("size:S");
   });
 });
