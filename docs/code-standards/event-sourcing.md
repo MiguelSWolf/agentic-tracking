@@ -55,7 +55,7 @@ await db.query("UPDATE events SET payload = $1 WHERE event_id = $2", [fixed, id]
 **Enforced by.** Review only (planned: integration test that the application DB role has no
 `UPDATE`/`DELETE` grant on `events`).
 
-**Source.** [ADR-0002](../adr/0002-postgres-event-store.md), AGENTS.md invariant 1.
+**Source.** [ADR-0014](../adr/0014-unpartitioned-event-store-global-event-id.md), AGENTS.md invariant 1.
 [Microsoft, Event Sourcing pattern: "Versioning events"](https://learn.microsoft.com/en-us/azure/architecture/patterns/event-sourcing#problems-and-considerations).
 
 ### ES-02: Read and replay in `position` order
@@ -80,7 +80,7 @@ SELECT * FROM events WHERE occurred_at > $1 ORDER BY occurred_at;
 
 **Enforced by.** Review only (planned: integration test that reads return ascending `position`).
 
-**Source.** [ADR-0002](../adr/0002-postgres-event-store.md),
+**Source.** [ADR-0014](../adr/0014-unpartitioned-event-store-global-event-id.md),
 [ADR-0003](../adr/0003-serialized-appends.md), [ADR-0007](../adr/0007-session-seq-ordering.md).
 
 ### ES-03: Take the advisory lock on every append
@@ -134,9 +134,9 @@ await tx.query(
 const eventId = randomUUID();
 ```
 
-**Enforced by.** Review only (planned: integration test appending the same `event_id` twice).
+**Enforced by.** Review only (planned: integration test `append › same event_id retried with occurred_at in different months › stores exactly one event`, ADR-0014).
 
-**Source.** AGENTS.md invariant 3, [ADR-0002](../adr/0002-postgres-event-store.md).
+**Source.** AGENTS.md invariant 3, [ADR-0014](../adr/0014-unpartitioned-event-store-global-event-id.md) (supersedes ADR-0002).
 [RFC 9562 §5.7, UUID Version 7](https://www.rfc-editor.org/rfc/rfc9562#section-5.7).
 
 ## Event contracts
@@ -218,7 +218,7 @@ export const upcastPageViewedV1ToV2 = (e: PageViewedV1): PageViewedV2 => ({
 
 **Enforced by.** Review only (planned: CI check that the v1 fixtures still parse against v1).
 
-**Source.** [ADR-0002](../adr/0002-postgres-event-store.md) (consequences), `new-event-type` skill.
+**Source.** [ADR-0014](../adr/0014-unpartitioned-event-store-global-event-id.md) (consequences), `new-event-type` skill.
 
 ### ES-08: Name events as past-tense facts
 
