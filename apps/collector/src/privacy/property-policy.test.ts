@@ -4,6 +4,13 @@ import { applyPropertyPolicy, DEFAULT_PROPERTY_POLICY } from "./property-policy.
 
 type Properties = Record<string, string | number | boolean | null>;
 
+const NONE = {
+  key_not_allowed: 0,
+  value_looks_personal: 0,
+  value_too_long: 0,
+  too_many_properties: 0,
+};
+
 function makeEvent(properties?: Properties): CustomEventTrackedV1 {
   return CustomEventTrackedV1.parse({
     event_id: "0192f5a0-7c3e-7b1a-9d4e-000000000014",
@@ -31,7 +38,7 @@ describe("applyPropertyPolicy", () => {
     const result = applyPropertyPolicy(event);
 
     expect(result.event).toEqual(event);
-    expect(result.redacted).toEqual([]);
+    expect(result.redacted).toEqual(NONE);
   });
 
   it("drops keys that are not on the allowlist with reason key_not_allowed", () => {
@@ -40,23 +47,20 @@ describe("applyPropertyPolicy", () => {
     const result = applyPropertyPolicy(event);
 
     expect(result.event.payload.properties).toEqual({ category: "pricing" });
-    expect(result.redacted).toEqual([
-      { key: "comment", reason: "key_not_allowed" },
-      { key: "email", reason: "key_not_allowed" },
-    ]);
+    expect(result.redacted).toEqual({ ...NONE, key_not_allowed: 2 });
   });
 
   it("drops an email-like value on an allowed key with reason value_looks_personal", () => {
     const result = applyPropertyPolicy(makeEvent({ category: "jane.doe@example.com" }));
 
     expect(result.event.payload.properties).toBeUndefined();
-    expect(result.redacted).toEqual([{ key: "category", reason: "value_looks_personal" }]);
+    expect(result.redacted).toEqual({ ...NONE, value_looks_personal: 1 });
   });
 
   it("drops a phone-like value on an allowed key with reason value_looks_personal", () => {
     const result = applyPropertyPolicy(makeEvent({ plan: "+49 (151) 234-56789" }));
 
-    expect(result.redacted).toEqual([{ key: "plan", reason: "value_looks_personal" }]);
+    expect(result.redacted).toEqual({ ...NONE, value_looks_personal: 1 });
   });
 
   it("keeps short numeric strings such as 'step 3' and '2026'", () => {
@@ -65,7 +69,7 @@ describe("applyPropertyPolicy", () => {
     const result = applyPropertyPolicy(event);
 
     expect(result.event).toEqual(event);
-    expect(result.redacted).toEqual([]);
+    expect(result.redacted).toEqual(NONE);
   });
 
   it("drops a string longer than maxStringLength with reason value_too_long", () => {
@@ -74,7 +78,7 @@ describe("applyPropertyPolicy", () => {
     );
 
     expect(result.event.payload.properties).toEqual({ variant: "a".repeat(200) });
-    expect(result.redacted).toEqual([{ key: "category", reason: "value_too_long" }]);
+    expect(result.redacted).toEqual({ ...NONE, value_too_long: 1 });
   });
 
   it("drops admitted keys beyond maxProperties in sorted key order", () => {
@@ -85,7 +89,7 @@ describe("applyPropertyPolicy", () => {
     const result = applyPropertyPolicy(makeEvent(properties), policy);
 
     expect(Object.keys(result.event.payload.properties ?? {})).toHaveLength(20);
-    expect(result.redacted).toEqual([{ key: "k20", reason: "too_many_properties" }]);
+    expect(result.redacted).toEqual({ ...NONE, too_many_properties: 1 });
   });
 
   it("omits properties and still satisfies the v1 schema when every key is dropped", () => {
@@ -100,7 +104,7 @@ describe("applyPropertyPolicy", () => {
 
     const result = applyPropertyPolicy(event);
 
-    expect(result).toEqual({ event, redacted: [] });
+    expect(result).toEqual({ event, redacted: NONE });
   });
 
   it("does not mutate the input event", () => {
@@ -112,11 +116,16 @@ describe("applyPropertyPolicy", () => {
     expect(event).toEqual(before);
   });
 
-  it("reports key names and reasons only, never values", () => {
+  it("reports counts per reason only, with no key names or values", () => {
     const result = applyPropertyPolicy(
-      makeEvent({ category: "jane.doe@example.com", note: "secret" }),
+      makeEvent({
+        category: "jane.doe@example.com",
+        "john.smith@example.com": "x",
+        "+49 151 2345678": "secret",
+      }),
     );
 
-    expect(JSON.stringify(result.redacted)).not.toMatch(/jane|secret/);
+    expect(result.redacted).toEqual({ ...NONE, key_not_allowed: 2, value_looks_personal: 1 });
+    expect(JSON.stringify(result.redacted)).not.toMatch(/jane|john|smith|secret|151|example/);
   });
 });

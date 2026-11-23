@@ -6,10 +6,8 @@ export type RedactionReason =
   | "value_too_long"
   | "too_many_properties";
 
-export type RedactedProperty = {
-  readonly key: string;
-  readonly reason: RedactionReason;
-};
+/** Number of dropped properties per reason. Fixed labels and integers only. */
+export type RedactionCounts = Readonly<Record<RedactionReason, number>>;
 
 export type PropertyPolicy = {
   readonly allowedKeys: ReadonlySet<string>;
@@ -19,8 +17,11 @@ export type PropertyPolicy = {
 
 export type PropertyPolicyResult = {
   readonly event: CustomEventTrackedV1;
-  /** Key names and reasons only. Never values, so it is safe to log (NODE-13). */
-  readonly redacted: readonly RedactedProperty[];
+  /**
+   * Counts per fixed reason. Contains no key names and no values, because both are
+   * caller-controlled and can carry personal data. Safe to log (NODE-13).
+   */
+  readonly redacted: RedactionCounts;
 };
 
 export const DEFAULT_PROPERTY_POLICY: PropertyPolicy = {
@@ -35,6 +36,13 @@ export const DEFAULT_PROPERTY_POLICY: PropertyPolicy = {
   ]),
   maxProperties: 20,
   maxStringLength: 200,
+};
+
+const NO_REDACTIONS: RedactionCounts = {
+  key_not_allowed: 0,
+  value_looks_personal: 0,
+  value_too_long: 0,
+  too_many_properties: 0,
 };
 
 const EMAIL_LIKE = /[^\s@]+@[^\s@]+\.[^\s@]+/;
@@ -79,11 +87,11 @@ export function applyPropertyPolicy(
 ): PropertyPolicyResult {
   const { properties, ...restPayload } = event.payload;
   if (properties === undefined) {
-    return { event, redacted: [] };
+    return { event, redacted: { ...NO_REDACTIONS } };
   }
 
   const kept: Record<string, PropertyValue> = {};
-  const redacted: RedactedProperty[] = [];
+  const redacted: Record<RedactionReason, number> = { ...NO_REDACTIONS };
   let keptCount = 0;
 
   for (const key of Object.keys(properties).sort()) {
@@ -93,9 +101,9 @@ export function applyPropertyPolicy(
     }
     const reason = redactionReason(key, value, policy);
     if (reason !== undefined) {
-      redacted.push({ key, reason });
+      redacted[reason] += 1;
     } else if (keptCount >= policy.maxProperties) {
-      redacted.push({ key, reason: "too_many_properties" });
+      redacted.too_many_properties += 1;
     } else {
       kept[key] = value;
       keptCount += 1;

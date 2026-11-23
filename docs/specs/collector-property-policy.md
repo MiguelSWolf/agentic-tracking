@@ -10,7 +10,7 @@ properties through a deny-by-default policy before append. The wire schema is no
 ## Behaviour
 
 `applyPropertyPolicy(event, policy = DEFAULT_PROPERTY_POLICY)` in `apps/collector/src/privacy/property-policy.ts`.
-It is pure: it never throws and never mutates the input. It returns `{ event, redacted }`.
+It is pure: it never throws and never mutates the input. It returns `{ event, redacted }`, where `redacted` is a count per reason.
 
 Keys are processed in sorted order, so the result is deterministic. For each property:
 
@@ -25,7 +25,9 @@ Keys are processed in sorted order, so the result is deterministic. For each pro
 If no property is left, `properties` is omitted. The result still satisfies `CustomEventTrackedV1`.
 The policy redacts fields and keeps the event. It does not reject the event.
 
-`redacted` holds key names and reasons only, never values, so it is safe to log (NODE-13).
+`redacted` holds a count of dropped properties per fixed reason (all four reasons are always present, zero
+when unused). It contains no key names and no values: both are caller-controlled and can carry personal data
+(for example a property named `jane.doe@example.com`). It is therefore safe to log (NODE-13, ADR-0009).
 
 **Default allowlist** (global, in code): `category`, `variant`, `step`, `plan`, `experiment_id`, `position`,
 `component`. Per-`app_id` allowlists are a later change and need the collector config module (NODE-10).
