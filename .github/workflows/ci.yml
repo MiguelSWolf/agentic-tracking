@@ -48,7 +48,10 @@ jobs:
         with: { node-version: 24, package-manager-cache: false }
       - name: Validate audit JSON against schema
         run: |
-          npx --yes ajv-cli@5 validate --spec=draft2020 -c ajv-formats \
+          # npx cannot resolve ajv-formats as a plugin of ajv-cli (audit M0-01), so install both side by side.
+          npm install --no-save --no-audit --no-fund --prefix "$RUNNER_TEMP/ajv" ajv-cli@5 ajv-formats@3
+          "$RUNNER_TEMP/ajv/node_modules/.bin/ajv" validate --spec=draft2020 \
+            -c "$RUNNER_TEMP/ajv/node_modules/ajv-formats" \
             -s .agents/skills/code-health-audit/schema.json -d "docs/audits/*.json"
 
   checks:
