@@ -55,6 +55,7 @@ jobs:
           LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
           LINEAR_TEAM_KEY: ${{ vars.LINEAR_TEAM_KEY || 'TRK' }}
           PR_NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p .agent-out
           node scripts/run-findings.mjs --workflow agent-pr-iterate --target "PR #$PR_NUMBER" \
@@ -62,5 +63,7 @@ jobs:
             --job-status "${{ job.status }}" --execution "${{ steps.claude.outputs.execution_file }}" \
             --out .agent-out/finding.md
           if [ -f .agent-out/finding.md ]; then
-            node scripts/linear.mjs finding .agent-out/finding.md.title .agent-out/finding.md || true
+            # Only a closing reference (Fixes/Closes/Resolves TRK-n) places the finding in a milestone (TRK-28).
+            ISSUE=$(gh pr view "$PR_NUMBER" --json body --jq .body | node scripts/linear.mjs closing-issue || true)
+            node scripts/linear.mjs finding .agent-out/finding.md.title .agent-out/finding.md $ISSUE || true
           fi

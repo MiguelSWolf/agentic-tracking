@@ -7,12 +7,14 @@
 //   node scripts/linear.mjs require-label <TRK-n> <label> exit 1 if the label is missing (gate G1)
 //   node scripts/linear.mjs comment <TRK-n> <file.md>      post file contents as a comment
 //   node scripts/linear.mjs audit-import <audit.json>      create one Triage issue per finding (gate G4)
-//   node scripts/linear.mjs finding <title.txt> <body.md>   open a source:finding issue, or comment on the open one
+//   node scripts/linear.mjs finding <title.txt> <body.md> [TRK-n]  open a source:finding issue in TRK-n's milestone,
+//                                                          or comment on the open one
 //                                                          with the same title (docs/workflow/findings.md)
+//   node scripts/linear.mjs closing-issue < body.md       print the TRK-n a PR body closes (Fixes/Closes/Resolves)
 //   node scripts/linear.mjs retro-export <TRK-n> <out.md>  milestone issues + source:finding issues for the retro skill
 
 import { readFileSync, writeFileSync } from "node:fs";
-import { importAudit } from "./linear-lib.mjs";
+import { closingIssue, findingsForMilestone, importAudit } from "./linear-lib.mjs";
 
 const API = "https://api.linear.app/graphql";
 const KEY = process.env.LINEAR_API_KEY;
@@ -172,7 +174,22 @@ async function cmdAuditImport(file) {
   });
 }
 
-async function cmdFinding(titleFile, bodyFile) {
+// Findings belong to the milestone of the issue whose run produced them (TRK-28).
+async function placement(relatedId) {
+  if (!relatedId) return {};
+  const data = await gql(
+    `query($id: String!) { issue(id: $id) { project { id } projectMilestone { id } } }`,
+    { id: relatedId },
+  );
+  const issue = data.issue;
+  if (!issue) return {};
+  return {
+    ...(issue.project ? { projectId: issue.project.id } : {}),
+    ...(issue.projectMilestone ? { projectMilestoneId: issue.projectMilestone.id } : {}),
+  };
+}
+
+async function cmdFinding(titleFile, bodyFile, relatedId) {
   const title = readFileSync(titleFile, "utf8").trim();
   const body = readFileSync(bodyFile, "utf8");
   const { teamId, stateId, labelId } = await teamContext(FINDING_LABEL);
@@ -199,7 +216,16 @@ async function cmdFinding(titleFile, bodyFile) {
   }
   const created = await gql(
     `mutation($input: IssueCreateInput!) { issueCreate(input: $input) { success issue { identifier } } }`,
-    { input: { teamId, stateId, labelIds: [labelId], title, description: body } },
+    {
+      input: {
+        teamId,
+        stateId,
+        labelIds: [labelId],
+        title,
+        description: body,
+        ...(await placement(relatedId)),
+      },
+    },
   );
   console.log(`created ${created.issueCreate.issue.identifier}`);
 }
@@ -210,6 +236,7 @@ async function cmdRetroExport(id, out) {
       issue(id: $id) {
         identifier
         projectMilestone {
+          id
           name
           issues(first: 250) { nodes { identifier title url state { name } labels { nodes { name } } } }
         }
@@ -223,7 +250,7 @@ async function cmdRetroExport(id, out) {
   const findings = await gql(
     `query($teamId: ID!, $labelId: ID!) {
       issues(first: 250, filter: { team: { id: { eq: $teamId } }, labels: { id: { eq: $labelId } } }) {
-        nodes { identifier title url createdAt state { name } description comments(first: 20) { nodes { body } } }
+        nodes { identifier title url createdAt state { name } projectMilestone { id } description comments(first: 20) { nodes { body } } }
       }
     }`,
     { teamId, labelId },
@@ -235,17 +262,26 @@ async function cmdRetroExport(id, out) {
       return `| ${i.identifier} | ${i.title.replaceAll("|", "\\|")} | ${i.state.name} | ${labels} |`;
     })
     .join("\n");
-  const findingBlocks = findings.issues.nodes
-    .map((f) => {
-      const repeats = f.comments.nodes.filter((c) => c.body.startsWith("Happened again")).length;
-      return `### ${f.identifier}: ${f.title}\n\n- State: ${f.state.name}\n- Created: ${f.createdAt}\n- Repeats: ${repeats}\n- URL: ${f.url}\n\n${f.description ?? ""}`;
-    })
-    .join("\n\n");
+  const block = (f) => {
+    const repeats = f.comments.nodes.filter((c) => c.body.startsWith("Happened again")).length;
+    return `### ${f.identifier}: ${f.title}\n\n- State: ${f.state.name}\n- Created: ${f.createdAt}\n- Repeats: ${repeats}\n- URL: ${f.url}\n\n${f.description ?? ""}`;
+  };
+  // Only this milestone's findings (TRK-28). Findings with no milestone are listed apart for a decision.
+  const { ours, unassigned } = findingsForMilestone(findings.issues.nodes, milestone.id);
+  const findingBlocks = ours.map(block).join("\n\n");
+  const unassignedBlocks = unassigned.map(block).join("\n\n");
   writeFileSync(
     out,
-    `# Retro inputs: ${milestone.name}\n\n## Milestone issues\n\n| Issue | Title | State | Labels |\n| --- | --- | --- | --- |\n${rows}\n\n## Linear findings (source:finding)\n\n${findingBlocks || "None."}\n`,
+    `# Retro inputs: ${milestone.name}\n\n## Milestone issues\n\n| Issue | Title | State | Labels |\n| --- | --- | --- | --- |\n${rows}\n\n## Linear findings (source:finding)\n\n${findingBlocks || "None."}\n\n## Linear findings with no milestone\n\nDecide whether each belongs to this milestone.\n\n${unassignedBlocks || "None."}\n`,
   );
   console.log(`wrote ${out}`);
+}
+
+// Prints the issue a PR body closes, read from stdin (used by agent-pr-iterate).
+async function cmdClosingIssue() {
+  let body = "";
+  for await (const chunk of process.stdin) body += chunk;
+  console.log(closingIssue(body) ?? "");
 }
 
 const [cmd, ...args] = process.argv.slice(2);
@@ -257,6 +293,7 @@ const commands = {
   "audit-import": cmdAuditImport,
   finding: cmdFinding,
   "retro-export": cmdRetroExport,
+  "closing-issue": cmdClosingIssue,
 };
 if (!commands[cmd]) fail(`unknown command "${cmd}"`);
 await commands[cmd](...args);
