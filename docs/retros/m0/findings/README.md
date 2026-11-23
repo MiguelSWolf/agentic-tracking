@@ -4,7 +4,7 @@
 
 Process and tooling gaps found while running the agentic loop in M0. They are recorded as soon as they are noticed, by agents (in the same PR), by the workflows (a Linear issue labelled `source:finding`, imported by the retro) or by the owner. The milestone retro records a decision for each one. See [docs/workflow/findings.md](../../../workflow/findings.md).
 
-**14 findings, 7 still open.**
+**15 findings, 8 still open.**
 
 | ID | Finding | Area | Source | Status |
 | --- | --- | --- | --- | --- |
@@ -22,3 +22,4 @@ Process and tooling gaps found while running the agentic loop in M0. They are re
 | [F-012](F-012-biome-warnings-dont-fail.md) | Recommended Biome rules report at `warn`/`info` and never fail CI | Code standards | agent | in progress (TRK-21) |
 | [F-013](F-013-guard-merge-commit-diff.md) | The protected-paths guard flagged files that changed on main, not on the agent branch | CI | owner | fixed ([#27](https://github.com/MiguelSWolf/agentic-tracking/pull/27)) |
 | [F-014](F-014-migrations-protected.md) | `**/migrations/` is protected, so no agent can create the event-store migration | Protected zones | owner | open |
+| [F-015](F-015-adr-only-issue-has-no-committable-diff.md) | An ADR-only issue has no committable change for a CI agent | agent context, protected zones (G5) | agent | open |
