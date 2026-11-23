@@ -30,7 +30,7 @@ Agent PRs are the PRs whose head branch starts with `agent/`.
 - `committedDate` is set by the commit author. A rebase, or a commit made earlier and pushed
   later, can mislabel a PR. GraphQL has no reliable push time.
 - `gh pr list` is capped at 1000 PRs, and each timeline query reads 100 items per page. The
-  script warns on stderr when a cap is hit. If a timeline or a review's inline comments are truncated, the rounds median is printed as `n/a (incomplete)` instead of an understated number.
+  script warns on stderr when a cap is hit. If a review's inline comments are truncated, the rounds median is printed as `n/a (incomplete: …)`. If the outer timeline of a merged PR is truncated, both the rounds median and the "no commits after ready-for-review" percentage are withheld that way, because a post-ready commit or the first ready event may be missing. Inline-comment truncation alone does not affect the percentage. Code fences are matched by character and length, so a shorter fence inside a longer block does not end it.
 - There is no breakdown by `size:` label (labels live in Linear), and no "review findings
   accepted vs. rejected" figure. Both are out of scope.
 

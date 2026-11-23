@@ -267,3 +267,47 @@ describe("renderTable", () => {
     );
   });
 });
+
+describe("hasClaudeRequest fences", () => {
+  it("given a shorter fence inside a longer fence, ignores the mention in the block", () => {
+    const body = "````md\n```\n@claude fix\n````\nthanks";
+    expect(hasClaudeRequest(body)).toBe(false);
+  });
+
+  it("given a mention after the longer fence closes, counts it", () => {
+    expect(hasClaudeRequest("````md\n```\n````\n@claude fix this")).toBe(true);
+  });
+});
+
+describe("timeline truncation", () => {
+  const item = { number: 17, createdAt: "2026-11-20T10:00:00Z", mergedAt: "2026-11-20T14:00:00Z" };
+
+  it("given a truncated outer timeline, withholds the unchanged percentage", () => {
+    const m = computeMetrics([pr({ timelineIncomplete: true })]);
+    expect(m.mergedUnchangedPct).toBeNull();
+    expect(renderTable(m, { repo: "o/r" })).toContain(
+      "| Merged with no commits after ready-for-review | n/a (incomplete: GitHub data truncated) |",
+    );
+  });
+
+  it("given only inline-comment truncation, keeps the unchanged percentage", () => {
+    const m = computeMetrics([pr({ roundsIncomplete: true, timelineIncomplete: false })]);
+    expect(m.mergedUnchangedPct).toBe(100);
+  });
+
+  it("given a truncated timeline, normalisePr flags the timeline", () => {
+    expect(normalisePr(item, [], { truncated: true }).timelineIncomplete).toBe(true);
+  });
+
+  it("given nested comment truncation only, normalisePr does not flag the timeline", () => {
+    const review = {
+      __typename: "PullRequestReview",
+      body: "",
+      author: { __typename: "User", login: "owner" },
+      comments: { pageInfo: { hasNextPage: true }, nodes: [] },
+    };
+    const n = normalisePr(item, [review]);
+    expect(n.roundsIncomplete).toBe(true);
+    expect(n.timelineIncomplete).toBe(false);
+  });
+});

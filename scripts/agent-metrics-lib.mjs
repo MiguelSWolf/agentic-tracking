@@ -65,13 +65,29 @@ const TRIGGER = /(?<![\w@/.*_`[\]-])@claude(?![\w\-*_`[\]/@])/;
 
 export function hasClaudeRequest(body) {
   if (typeof body !== "string") return false;
-  const text = body
-    .replace(/^ {0,3}(```|~~~)[^\n]*\n[\s\S]*?(^ {0,3}\1[^\n]*$|(?![\s\S]))/gm, "")
+  const text = stripFencedCode(body)
     .replace(/`[^`\n]*`/g, "")
     .split("\n")
     .filter((line) => !/^\s{0,3}>/.test(line))
     .join("\n");
   return TRIGGER.test(text);
+}
+
+// CommonMark: a fence closes only on the same character with at least the opening length.
+function stripFencedCode(body) {
+  const kept = [];
+  let open = null;
+  for (const line of body.split("\n")) {
+    if (open === null) {
+      const m = /^ {0,3}(`{3,}|~{3,})/.exec(line);
+      if (m) open = { char: m[1][0], length: m[1].length };
+      else kept.push(line);
+    } else {
+      const m = /^ {0,3}(`{3,}|~{3,})\s*$/.exec(line);
+      if (m && m[1][0] === open.char && m[1].length >= open.length) open = null;
+    }
+  }
+  return kept.join("\n");
 }
 
 function mentionsClaude(item) {
@@ -101,6 +117,7 @@ export function normalisePr(listItem, timeline, { truncated = false } = {}) {
   let readyAt = null;
   const commitDates = [];
   let claudeRounds = 0;
+  const timelineIncomplete = truncated;
   let roundsIncomplete = truncated;
   for (const node of timeline) {
     switch (node?.__typename) {
@@ -133,6 +150,7 @@ export function normalisePr(listItem, timeline, { truncated = false } = {}) {
     commitDates,
     claudeRounds,
     roundsIncomplete,
+    timelineIncomplete,
   };
 }
 
@@ -146,13 +164,18 @@ export function computeMetrics(prs, { since = null } = {}) {
     pr.commitDates.every((date) => Date.parse(date) <= Date.parse(pr.readyAt)),
   );
 
+  // A truncated outer timeline can hide a post-ready commit or the first ready event.
+  const unchangedIncomplete = merged.some((pr) => pr.timelineIncomplete === true);
+
   // A truncated page can hide requests, so the rounds median is withheld, not understated.
   const roundsIncomplete = merged.some((pr) => pr.roundsIncomplete === true);
 
   return {
     opened: opened.length,
     merged: merged.length,
-    mergedUnchangedPct: merged.length === 0 ? null : (unchanged.length / merged.length) * 100,
+    mergedUnchangedPct:
+      merged.length === 0 || unchangedIncomplete ? null : (unchanged.length / merged.length) * 100,
+    mergedUnchangedIncomplete: unchangedIncomplete,
     medianClaudeRounds: roundsIncomplete ? null : median(merged.map((pr) => pr.claudeRounds)),
     claudeRoundsIncomplete: roundsIncomplete,
     medianDraftToMergeHours: median(
@@ -172,7 +195,9 @@ export function renderTable(metrics, { since = null, repo }) {
     ["Agent PRs merged", String(metrics.merged)],
     [
       "Merged with no commits after ready-for-review",
-      cell(metrics.mergedUnchangedPct, (v) => `${v.toFixed(0)}%`),
+      metrics.mergedUnchangedIncomplete === true
+        ? "n/a (incomplete: GitHub data truncated)"
+        : cell(metrics.mergedUnchangedPct, (v) => `${v.toFixed(0)}%`),
     ],
     [
       "Median `@claude` rounds per merged PR",
