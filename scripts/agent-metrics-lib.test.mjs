@@ -404,6 +404,12 @@ describe("fixesRefs", () => {
 
     expect(fixesRefs(body)).toEqual(["TRK-25"]);
   });
+
+  it("given a shorter inner fence inside a longer block, ignores the example after it", () => {
+    const body = ["````md", "```", "Fixes TRK-99", "````", "", "Fixes TRK-25"].join("\n");
+
+    expect(fixesRefs(body)).toEqual(["TRK-25"]);
+  });
 });
 
 describe("computeSizeCohort", () => {

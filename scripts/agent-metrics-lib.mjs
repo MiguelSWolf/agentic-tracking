@@ -174,15 +174,7 @@ export function normalisePr(listItem, timeline, { truncated = false } = {}) {
 export function fixesRefs(body) {
   if (typeof body !== "string") return [];
   const ids = new Set();
-  let fence = null;
-  for (const line of body.split(/\r?\n/)) {
-    const marker = /^\s*(```+|~~~+)/.exec(line);
-    if (marker !== null) {
-      if (fence === null) fence = marker[1][0];
-      else if (marker[1][0] === fence) fence = null;
-      continue;
-    }
-    if (fence !== null) continue;
+  for (const line of stripFencedCode(body).split("\n")) {
     const m = /^fixes\s+(TRK-\d+)\s*\.?\s*$/i.exec(line.trim());
     if (m !== null) ids.add(m[1].toUpperCase());
   }
