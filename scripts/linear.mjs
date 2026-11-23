@@ -14,7 +14,7 @@
 //   node scripts/linear.mjs retro-export <TRK-n> <out.md>  milestone issues + source:finding issues for the retro skill
 
 import { readFileSync, writeFileSync } from "node:fs";
-import { closingIssue, findingsForMilestone, importAudit } from "./linear-lib.mjs";
+import { closingIssue, findingsForMilestone, importAudit, readAllPages } from "./linear-lib.mjs";
 
 const API = "https://api.linear.app/graphql";
 const KEY = process.env.LINEAR_API_KEY;
@@ -231,21 +231,29 @@ async function cmdFinding(titleFile, bodyFile, relatedId) {
 }
 
 async function cmdRetroExport(id, out) {
-  const data = await gql(
-    `query($id: String!) {
-      issue(id: $id) {
-        identifier
-        projectMilestone {
-          id
-          name
-          issues(first: 250) { nodes { identifier title url state { name } labels { nodes { name } } } }
+  // Every page of the milestone's issues (TRK-25): a partial list would understate the size:S cohort.
+  let milestone;
+  const { nodes, complete: exportComplete } = await readAllPages(async (after) => {
+    const data = await gql(
+      `query($id: String!, $after: String) {
+        issue(id: $id) {
+          projectMilestone {
+            id
+            name
+            issues(first: 100, after: $after) {
+              pageInfo { hasNextPage endCursor }
+              nodes { identifier title url state { name } labels { nodes { name } } }
+            }
+          }
         }
-      }
-    }`,
-    { id },
-  );
-  const milestone = data.issue?.projectMilestone;
-  if (!milestone) fail(`${id} has no project milestone`);
+      }`,
+      { id, after },
+    );
+    milestone = data.issue?.projectMilestone;
+    if (!milestone) fail(`${id} has no project milestone`);
+    return milestone.issues;
+  });
+  milestone.issues = { nodes };
   const { teamId, labelId } = await teamContext(FINDING_LABEL);
   const findings = await gql(
     `query($teamId: ID!, $labelId: ID!) {
@@ -272,7 +280,7 @@ async function cmdRetroExport(id, out) {
   const unassignedBlocks = unassigned.map(block).join("\n\n");
   writeFileSync(
     out,
-    `# Retro inputs: ${milestone.name}\n\n## Milestone issues\n\n| Issue | Title | State | Labels |\n| --- | --- | --- | --- |\n${rows}\n\n## Linear findings (source:finding)\n\n${findingBlocks || "None."}\n\n## Linear findings with no milestone\n\nDecide whether each belongs to this milestone.\n\n${unassignedBlocks || "None."}\n`,
+    `# Retro inputs: ${milestone.name}\n\nExport complete: ${exportComplete}\n\n## Milestone issues\n\n| Issue | Title | State | Labels |\n| --- | --- | --- | --- |\n${rows}\n\n## Linear findings (source:finding)\n\n${findingBlocks || "None."}\n\n## Linear findings with no milestone\n\nDecide whether each belongs to this milestone.\n\n${unassignedBlocks || "None."}\n`,
   );
   console.log(`wrote ${out}`);
 }

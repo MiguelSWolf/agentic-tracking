@@ -367,6 +367,16 @@ describe("parseIssues", () => {
     expect(parseIssues(retroInputs).partial).toBe(false);
   });
 
+  it("given a paginated export marked complete, trusts the marker over the page size", () => {
+    const rows = Array.from({ length: 250 }, (_, i) => `| TRK-${i + 1} | T | Done | size:S |`);
+    const md = `# Retro inputs: M1\n\nExport complete: true\n\n## Milestone issues\n\n| Issue | Title | State | Labels |\n| --- | --- | --- | --- |\n${rows.join("\n")}\n`;
+
+    const result = parseIssues(md);
+
+    expect(result.partial).toBe(false);
+    expect(result.issues.size).toBe(250);
+  });
+
   it("given an explicit incomplete marker, flags the export as partial", () => {
     expect(parseIssues(`${retroInputs}\nExport complete: false\n`).partial).toBe(true);
   });

@@ -490,7 +490,7 @@ store).
 
 **Source.** [nbp 6.4, Prevent query injection vulnerabilities with ORM/ODM libraries](https://github.com/goldbergyoni/nodebestpractices#-64-prevent-query-injection-vulnerabilities-with-ormodm-libraries)
 (adapted, see Deviations),
-[ADR-0002](../adr/0002-postgres-event-store.md).
+[ADR-0014](../adr/0014-unpartitioned-event-store-global-event-id.md).
 
 ## Lifecycle and modules
 

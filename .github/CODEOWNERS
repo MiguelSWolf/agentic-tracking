@@ -9,6 +9,8 @@
 /docs/adr/        @MiguelSWolf
 /scripts/linear.mjs @MiguelSWolf
 /scripts/linear-lib.mjs @MiguelSWolf
+/scripts/guard-paths.mjs @MiguelSWolf
+/scripts/guard-paths-lib.mjs @MiguelSWolf
 /scripts/cancel-waiting-ci.mjs @MiguelSWolf
 **/migrations/    @MiguelSWolf
 /docs/code-standards/ @MiguelSWolf
