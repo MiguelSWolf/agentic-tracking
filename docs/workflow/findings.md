@@ -36,6 +36,19 @@ Get the next ID with `node scripts/findings-index.mjs --next <milestone>`.
 | An agent run fails or is degraded: the job failed, Claude stopped early (for example at the turn cap), or a tool call was denied | The last step of `agent-implement` and `agent-pr-iterate` runs `scripts/run-findings.mjs` on the run's execution file. If it finds a signal, `scripts/linear.mjs finding` opens a Linear issue labelled `source:finding` with the run link. The same signals on the same target add a comment to the open issue instead of creating a duplicate. The retro imports these issues as files. |
 | The owner or a reviewer notices something | Add the file in a PR. |
 
+## Expected denials
+
+A denied tool call is *expected* when a guard did its job. `scripts/run-findings.mjs` (`isExpectedDenial`) treats two kinds as expected:
+
+- an `Edit`, `Write`, `MultiEdit` or `NotebookEdit`, or a `Bash` command that names a path inside a protected zone, as classified by `scripts/guard-paths-lib.mjs` (G5);
+- a destructive or publishing command: `git reset --hard`, `git push`, `gh pr merge`, `gh pr ready`.
+
+Expected denials do not open a `source:finding` issue. They are counted: the script writes `<out>.expected` and appends the count and the calls to the job summary (`$GITHUB_STEP_SUMMARY`). If the run is finding-worthy for another reason, they are listed in the issue under "Expected denials". Every other denial still opens an issue, because it means a legitimate need was blocked.
+
+What the check does not cover: Bash matching is token based, so a command that only mentions a protected path also counts as expected. Reading a protected path is never denied, so in practice only write attempts reach this rule. A miss only means an issue opens.
+
+ADR-0011 does not use denials as a metric. The count keeps the signal "G5 held, and the agent still tries protected writes" visible without a Linear issue to triage.
+
 ## How they are closed
 
 The milestone retro ([`retro` skill](../../.agents/skills/retro/SKILL.md), run on the milestone issue labelled `type:retro`) reads every finding of the milestone together with the
