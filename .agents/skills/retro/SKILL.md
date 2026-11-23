@@ -17,6 +17,7 @@ leaves it with a decision. Every gate change is justified by ADR-0011 numbers. R
 | Findings already in the repo | `docs/retros/<milestone>/findings/F-*.md` and its `README.md` |
 | Findings opened by failed or degraded runs (Linear `source:finding`) | `.agent-out/retro-inputs.md`, written by the workflow |
 | The milestone's issues, with size labels and state | `.agent-out/retro-inputs.md` |
+| Review comments and `@claude` requests on the merged agent PRs | `.agent-out/reviews.md`, written by the workflow |
 | Calibration metrics (ADR-0011) | `.agent-out/metrics.md`, written by the workflow with `scripts/agent-metrics.mjs` |
 | The code-health audit (G4) | `docs/audits/<milestone>.md`, if it exists |
 | Earlier retros, for the trend | `docs/retros/*.md` |
@@ -35,8 +36,11 @@ are `n/a (incomplete…)`, report them as they are.
    - `open` → propose a follow-up issue. The status stays `open` until the owner creates the
      issue, then becomes `in progress (TRK-n)`.
    A finding never leaves the retro without a `## Decision`.
-3. **Look for patterns.** Group findings by area. Two or more findings in one area usually point to a
-   missing rule, skill step or check. Propose that change, not one fix per finding.
+3. **Look for patterns.** Group findings by area. Do the same with the review comments in
+   `reviews.md`: when the same kind of correction shows up in **two or more PRs**, or the owner flagged it,
+   it is a recurring problem. For each recurring problem, propose **one concrete rule change** in
+   `AGENTS.md`, a skill, a code standard or `.coderabbit.yaml`, with the PR links as evidence. Models do not
+   learn between runs, but the rules they read do. Propose that change, not one fix per comment.
 4. **Calibrate the gates (ADR-0011).**
    - Copy the metrics table as it is.
    - Compute the share of **`size:S`** agent PRs merged unchanged. Map each merged agent PR
@@ -71,8 +75,8 @@ Gate decision: <unchanged / G1 optional for size:S>, because …
 | --- | --- | --- | --- |
 (one row per finding, every finding of the milestone)
 
-## Patterns
-- <area>: F-…, F-… → <proposed rule, skill or check change>
+## Patterns and rule changes
+- <problem>: evidence (F-…, PR #…, #…) → <exact rule, skill or check change>
 
 ## Audit (G4)
 <summary, or "No audit report for this milestone.">
