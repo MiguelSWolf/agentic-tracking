@@ -11,7 +11,9 @@
 // When the run is finding-worthy it writes <out> (the issue body) and <out>.title.
 // Otherwise it writes nothing. It always exits 0, so it never masks the real job result.
 
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import { relative, resolve } from "node:path";
+import { findViolations } from "./guard-paths-lib.mjs";
 
 function parseArgs(argv) {
   const opts = {};
@@ -41,13 +43,49 @@ export function readResult(file) {
   return messages.findLast((m) => m?.type === "result") ?? null;
 }
 
-export function summarise({ jobStatus, result }) {
+const FILE_TOOLS = new Set(["Edit", "Write", "MultiEdit", "NotebookEdit"]);
+const DESTRUCTIVE_COMMANDS = [
+  /\bgit\s+reset\s+--hard\b/,
+  /\bgit\s+push\b/,
+  /\bgh\s+pr\s+(merge|ready)\b/,
+];
+
+function isProtectedPath(path) {
+  return findViolations([{ status: "M", path }]).length > 0;
+}
+
+// An expected denial is a guard doing its job: a write to a protected zone (G5) or a
+// destructive or publishing git/gh command. It is counted, not turned into a finding issue.
+// Bash matching is token based: a command that only mentions a protected path also matches.
+export function isExpectedDenial(denial, cwd = process.cwd()) {
+  const input = denial?.tool_input ?? {};
+  if (FILE_TOOLS.has(denial?.tool_name)) {
+    const file = input.file_path ?? input.notebook_path;
+    if (typeof file !== "string") return false;
+    return isProtectedPath(relative(cwd, resolve(cwd, file)));
+  }
+  if (denial?.tool_name === "Bash" && typeof input.command === "string") {
+    const command = input.command;
+    if (DESTRUCTIVE_COMMANDS.some((re) => re.test(command))) return true;
+    return command
+      .split(/[\s"'`<>|;&()=]+/)
+      .filter(Boolean)
+      .some((token) => isProtectedPath(token.replace(/^\.\//, "")));
+  }
+  return false;
+}
+
+export function summarise({ jobStatus, result, cwd }) {
   const reasons = [];
   if (jobStatus !== "success") reasons.push(`job ${jobStatus}`);
   if (result?.subtype && result.subtype !== "success") reasons.push(`claude ${result.subtype}`);
-  const denials = Array.isArray(result?.permission_denials) ? result.permission_denials : [];
+  const all = Array.isArray(result?.permission_denials) ? result.permission_denials : [];
+  const expected = all.filter((d) => isExpectedDenial(d, cwd));
+  const denials = all.filter((d) => !expected.includes(d));
   if (denials.length > 0) reasons.push(`${denials.length} denied tool call(s)`);
-  return { worthy: reasons.length > 0, reasons, denials };
+  const worthy = reasons.length > 0;
+  if (worthy && expected.length > 0) reasons.push(`${expected.length} expected denial(s)`);
+  return { worthy, reasons, denials, expected };
 }
 
 function denialLine(d) {
@@ -59,7 +97,17 @@ function denialLine(d) {
 function main() {
   const opts = parseArgs(process.argv.slice(2));
   const result = readResult(opts.execution);
-  const { worthy, reasons, denials } = summarise({ jobStatus: opts["job-status"], result });
+  const { worthy, reasons, denials, expected } = summarise({
+    jobStatus: opts["job-status"],
+    result,
+  });
+  if (expected.length > 0) {
+    const line = `Expected denials in ${opts.workflow} on ${opts.target} (${opts["run-url"]}): ${expected.length}\n${expected.map(denialLine).join("\n")}\n`;
+    writeFileSync(`${opts.out}.expected`, line);
+    console.log(`run-findings: ${expected.length} expected denial(s), counted without an issue`);
+    if (process.env.GITHUB_STEP_SUMMARY)
+      appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${line}\n`);
+  }
   if (!worthy) {
     console.log("run-findings: nothing to record");
     return;
@@ -71,7 +119,7 @@ function main() {
 - **Signals:** ${reasons.join("; ")}
 - **Claude:** subtype \`${result?.subtype ?? "n/a"}\`, ${result?.num_turns ?? "?"} turns${result?.is_error ? ", is_error" : ""}
 
-${denials.length ? `## Denied tool calls\n\n${denials.slice(0, 10).map(denialLine).join("\n")}\n` : ""}
+${denials.length ? `## Denied tool calls\n\n${denials.slice(0, 10).map(denialLine).join("\n")}\n` : ""}${expected.length ? `\n## Expected denials (protected zone / destructive git)\n\n${expected.slice(0, 10).map(denialLine).join("\n")}\n` : ""}
 ## Next
 
 The milestone retro imports this issue as \`docs/retros/<milestone>/findings/F-NNN-*.md\` and decides whether to fix it, accept it or mark it already fixed. If this was an expected stop (for example a blocking question in the plan), cancel the issue with a short reason.

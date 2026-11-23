@@ -34,6 +34,18 @@ Process gaps found along the way: [findings.md](findings.md).
 5. CodeRabbit and the owner review; Claude iterates on `@claude` comments (G2, G3).
 6. Owner merges. The PR contains `Fixes TRK-<n>`, which closes the issue.
 
+## Syncing an agent branch with the remote
+
+Never use `git reset --hard`: it can silently drop local commits.
+
+```
+git status                      # commit or stash local work first
+git fetch origin <branch>
+git merge --ff-only FETCH_HEAD  # fast-forward only
+```
+
+If the fast-forward fails (both sides have commits), run `git merge --no-edit FETCH_HEAD`. On a conflict, stop and report it in the PR. Do not rebase and force-push: the review history (G2) must stay.
+
 ## Metrics
 
 - [Agent calibration metrics](agent-metrics.md): `pnpm agent:metrics`.
