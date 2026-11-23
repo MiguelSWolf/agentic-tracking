@@ -184,5 +184,5 @@ jobs:
             --job-status "${{ job.status }}" --execution "${{ steps.claude.outputs.execution_file }}" \
             --out .agent-out/finding.md
           if [ -f .agent-out/finding.md ]; then
-            node scripts/linear.mjs finding .agent-out/finding.md.title .agent-out/finding.md || true
+            node scripts/linear.mjs finding .agent-out/finding.md.title .agent-out/finding.md "$ISSUE_ID" || true
           fi
