@@ -31,7 +31,7 @@ are `n/a (incomplete…)`, report them as they are.
    (`node scripts/findings-index.mjs --next <milestone>`). Use `Source: workflow` and put the Linear
    issue and run links under Evidence. Merge duplicates into one file and list every link.
 2. **Decide every finding.** Set its `Status` and add a `## Decision` section to its file:
-   - `fixed (#PR)`: point to the PR that fixed it. Check that the PR is merged with `git log --oneline origin/main --grep "(#N)"`; `gh` is not available.
+   - `fixed (#PR)`: point to the PR that fixed it. Check that the PR is merged against `.agent-out/reviews.md` (the workflow's list of merged agent PRs), which is the source of truth. Only if the PR is not listed there, fall back to `git log --oneline origin/main --grep "(#N)$"` and accept a match only when the commit subject line ends with `(#N)` (the squash-merge subject); a commit that merely mentions the PR does not count. `gh` is not available.
    - `accepted`: explain why living with it is cheaper than fixing it.
    - `open` → propose a follow-up issue. The status stays `open` until the owner creates the
      issue, then becomes `in progress (TRK-n)`.
