@@ -22,8 +22,10 @@ do not restate them.
 2. **Missing tests** the rules require: a contract test per event version (ES-06, TEST-15), a replay
    test per projection (ES-15, TEST-16), the concurrent-append test (TEST-17), the bus contract suite (TEST-18).
 3. **ADR violations.** A change that contradicts an Accepted ADR needs a superseding ADR first.
-4. **Docs and specs (ADR-0012).** Did a behaviour change update `docs/specs/` or the matching doc?
-5. **Correctness.** Edge cases, error paths, and whether the tests could pass while the code is wrong
+4. **Docs and specs (ADR-0012).** Did a behaviour change update `docs/specs/` or the matching doc? Does every
+   "validated" or "enforced" claim name the exact check and what it does not cover? (M0 retro, rule B)
+5. **Correctness.** Does each new test fail if the behaviour is wrong? Does each example follow every other
+   rule ID? (TEST-14, NODE-01; M0 retro, rule A) Edge cases, error paths, and whether the tests could pass while the code is wrong
    (assertions that are too weak, examples that test the end state only).
 6. **Security and privacy.** PII (ES-09, NODE-13, ADR-0009), secrets (NODE-11), injection (NODE-16), trust rules (ADR-0008).
 7. **Code standards.** Cite the rule ID (`TS-14`, `NODE-02`, …). Skip anything Biome already reports.
