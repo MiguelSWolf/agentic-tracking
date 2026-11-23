@@ -53,6 +53,18 @@ jobs:
           "$RUNNER_TEMP/ajv/node_modules/.bin/ajv" validate --spec=draft2020 \
             -c "$RUNNER_TEMP/ajv/node_modules/ajv-formats" \
             -s .agents/skills/code-health-audit/schema.json -d "docs/audits/*.json"
+      - name: The validator rejects an invalid report
+        run: |
+          # Guards against a check that passes everything (TRK-22): a date-time violation must fail.
+          AJV="$RUNNER_TEMP/ajv/node_modules/.bin/ajv"
+          cat > "$RUNNER_TEMP/invalid-audit.json" <<'JSON'
+          {"milestone": "M0", "generated_at": "not-a-date", "auditor": "ci", "findings": []}
+          JSON
+          if "$AJV" validate --spec=draft2020 -c "$RUNNER_TEMP/ajv/node_modules/ajv-formats" \
+              -s .agents/skills/code-health-audit/schema.json -d "$RUNNER_TEMP/invalid-audit.json"; then
+            echo "::error::validate-audit accepted an invalid report"
+            exit 1
+          fi
 
   checks:
     runs-on: ubuntu-latest
