@@ -1,10 +1,13 @@
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import process from "node:process";
 import {
   computeMetrics,
+  computeSizeCohort,
   isAgentPr,
   normalisePr,
   parseArgs,
+  parseIssues,
   renderTable,
 } from "./agent-metrics-lib.mjs";
 
@@ -56,7 +59,7 @@ function ghJson(args) {
 }
 
 function main() {
-  const { since } = parseArgs(process.argv.slice(2));
+  const { since, issues: issuesPath } = parseArgs(process.argv.slice(2));
   const repo = ghJson(["repo", "view", "--json", "nameWithOwner"]).nameWithOwner;
   const [owner, name] = repo.split("/");
 
@@ -68,7 +71,7 @@ function main() {
     "--limit",
     String(PR_LIMIT),
     "--json",
-    "number,headRefName,createdAt,mergedAt,state",
+    "number,headRefName,createdAt,mergedAt,state,body,url",
   ]);
   if (list.length >= PR_LIMIT) {
     process.stderr.write(`warning: reached the ${PR_LIMIT} PR limit; results may be incomplete\n`);
@@ -104,7 +107,19 @@ function main() {
     return normalised;
   });
 
-  process.stdout.write(renderTable(computeMetrics(prs, { since }), { since, repo }));
+  const metrics = computeMetrics(prs, { since });
+  if (issuesPath === null) {
+    process.stdout.write(renderTable(metrics, { since, repo }));
+    return;
+  }
+  let parsed;
+  try {
+    parsed = parseIssues(readFileSync(issuesPath, "utf8"));
+  } catch (cause) {
+    throw new Error(`Cannot read issues file ${issuesPath}: ${cause.message}`, { cause });
+  }
+  const cohort = computeSizeCohort(prs, parsed.issues, { listTruncated: list.length >= PR_LIMIT });
+  process.stdout.write(renderTable(metrics, { since, repo, cohort, milestone: parsed.milestone }));
 }
 
 try {

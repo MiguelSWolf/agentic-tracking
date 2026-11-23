@@ -1,6 +1,6 @@
 # Agent calibration metrics
 
-`pnpm agent:metrics [--since YYYY-MM-DD]` prints the calibration metrics of
+`pnpm agent:metrics [--since YYYY-MM-DD] [--issues <file>]` prints the calibration metrics of
 [ADR-0011](../adr/0011-calibration-metrics.md) as a markdown table, ready to paste into a
 milestone retro. ADR-0011 explains how the numbers are used to relax gates.
 
@@ -12,6 +12,23 @@ milestone retro. ADR-0011 explains how the numbers are used to relax gates.
   built-ins. Redirect stdout to `$GITHUB_STEP_SUMMARY` to show the table in the job summary.
 
 Errors go to stderr and the exit code is 1. The table goes to stdout.
+
+## `size:S` cohort per milestone (`--issues`)
+
+ADR-0011 sets the gate threshold on `size:S` PRs per milestone, not on all agent PRs. Pass
+`--issues .agent-out/retro-inputs.md` (the file `linear.mjs retro-export` writes) to add a
+section `size:S merged unchanged: <milestone>`. The milestone name comes from the file heading.
+
+- A merged agent PR is joined to an issue through its `Fixes TRK-n` line.
+- A PR whose single issue is in the milestone and labelled `size:S` is in the cohort. The
+  numerator is the cohort PRs with no commit after ready-for-review (same rule as above).
+  `--since` does not filter the cohort.
+- A PR whose single issue is outside the milestone is skipped.
+- The section prints `x of y (z%)` and the PR links, or `n/a (incomplete: …)` naming the cause:
+  a merged agent PR with no `Fixes TRK-n`, a PR with several `Fixes` references, a member
+  issue with no `size:` label, a truncated timeline on a cohort PR, or the 1000-PR cap.
+- `size:S` issues with no merged agent PR are listed for information. They do not make the
+  result incomplete, because issues can close without an agent PR.
 
 ## Definitions
 
@@ -31,8 +48,8 @@ Agent PRs are the PRs whose head branch starts with `agent/`.
   later, can mislabel a PR. GraphQL has no reliable push time.
 - `gh pr list` is capped at 1000 PRs, and each timeline query reads 100 items per page. The
   script warns on stderr when a cap is hit. If a review's inline comments are truncated, the rounds median is printed as `n/a (incomplete: …)`. If the outer timeline of a merged PR is truncated, both the rounds median and the "no commits after ready-for-review" percentage are withheld that way, because a post-ready commit or the first ready event may be missing. Inline-comment truncation alone does not affect the percentage. Code fences are matched by character and length, so a shorter fence inside a longer block does not end it.
-- There is no breakdown by `size:` label (labels live in Linear), and no "review findings
-  accepted vs. rejected" figure. Both are out of scope.
+- There is no "review findings accepted vs. rejected" figure. It is out of scope. Size labels
+  live in Linear, so the `size:S` cohort needs the `--issues` file.
 
 ## Deviations from code standards
 
