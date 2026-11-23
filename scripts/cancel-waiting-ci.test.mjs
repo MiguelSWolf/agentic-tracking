@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { isWaitingDuplicate, selectRuns } from "./cancel-waiting-ci.mjs";
+import { isWaitingDuplicate, revalidate, selectRuns } from "./cancel-waiting-ci.mjs";
 
 const SHA = "20bfd9b0c3f1e5a7d2b8c4e6f0a1b3c5d7e9f2a4";
 const bot = { login: "github-actions[bot]" };
 const run = (extra) => ({
   id: 45018489475,
   event: "pull_request",
+  run_attempt: 1,
   head_sha: SHA,
   status: "completed",
   conclusion: "action_required",
@@ -19,7 +20,7 @@ describe("selectRuns", () => {
   it("with a completed action_required bot run and no jobs, deletes it", async () => {
     const selected = await selectRuns([run()], SHA, jobs({}));
 
-    expect(selected).toEqual([{ id: 45018489475, action: "delete" }]);
+    expect(selected).toEqual([{ id: 45018489475, attempt: 1, action: "delete" }]);
   });
 
   it("with a run still waiting as status action_required, cancels it", async () => {
@@ -29,7 +30,7 @@ describe("selectRuns", () => {
       jobs({}),
     );
 
-    expect(selected).toEqual([{ id: 45018489475, action: "cancel" }]);
+    expect(selected).toEqual([{ id: 45018489475, attempt: 1, action: "cancel" }]);
   });
 
   it("with an approved run in progress, leaves it alone", async () => {
@@ -79,5 +80,33 @@ describe("selectRuns", () => {
 
   it("with a dispatched run, leaves it alone", async () => {
     expect(await selectRuns([run({ event: "workflow_dispatch" })], SHA, jobs({}))).toEqual([]);
+  });
+});
+
+describe("revalidate", () => {
+  const candidate = { id: 45018489475, attempt: 1, action: "delete" };
+  const fetchOf = (current) => async () => current;
+
+  it("with a run unchanged since selection, returns the planned action", async () => {
+    expect(await revalidate(candidate, SHA, fetchOf(run()), jobs({}))).toBe("delete");
+  });
+
+  it("with a run the owner re-ran as attempt 2, skips it", async () => {
+    const rerun = run({
+      run_attempt: 2,
+      status: "in_progress",
+      conclusion: null,
+      triggering_actor: { login: "MiguelSWolf" },
+    });
+
+    expect(await revalidate(candidate, SHA, fetchOf(rerun), jobs({ 45018489475: 2 }))).toBeNull();
+  });
+
+  it("with a run that started jobs after selection, skips it", async () => {
+    expect(await revalidate(candidate, SHA, fetchOf(run()), jobs({ 45018489475: 1 }))).toBeNull();
+  });
+
+  it("with a re-run that is again waiting under a new attempt, skips it", async () => {
+    expect(await revalidate(candidate, SHA, fetchOf(run({ run_attempt: 2 })), jobs({}))).toBeNull();
   });
 });
