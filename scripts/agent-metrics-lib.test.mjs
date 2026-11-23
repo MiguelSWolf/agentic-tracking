@@ -359,6 +359,18 @@ describe("parseIssues", () => {
     expect(parseIssues(retroInputs).issues.get("TRK-11")).toBeNull();
   });
 
+  it("given a full export page of issues, flags the export as partial", () => {
+    const rows = Array.from({ length: 250 }, (_, i) => `| TRK-${i + 1} | T | Done | size:S |`);
+    const md = `# Retro inputs: M0\n\n## Milestone issues\n\n| Issue | Title | State | Labels |\n| --- | --- | --- | --- |\n${rows.join("\n")}\n`;
+
+    expect(parseIssues(md).partial).toBe(true);
+    expect(parseIssues(retroInputs).partial).toBe(false);
+  });
+
+  it("given an explicit incomplete marker, flags the export as partial", () => {
+    expect(parseIssues(`${retroInputs}\nExport complete: false\n`).partial).toBe(true);
+  });
+
   it("given a file without the milestone table, throws", () => {
     expect(() => parseIssues("# Retro inputs: M0\n\nNothing here.\n")).toThrow(/Milestone issues/);
   });
@@ -375,6 +387,22 @@ describe("fixesRefs", () => {
 
   it("given TRK-25 mentioned without Fixes, ignores it", () => {
     expect(fixesRefs("Related to TRK-25")).toEqual([]);
+  });
+
+  it("given one real closing line and examples, returns only the real one", () => {
+    const body = [
+      "Fixes TRK-25",
+      "",
+      "> Fixes TRK-1",
+      "",
+      "```",
+      "Fixes TRK-2",
+      "```",
+      "",
+      "Write `Fixes TRK-3` in the body, or say we Fixes TRK-4 later.",
+    ].join("\n");
+
+    expect(fixesRefs(body)).toEqual(["TRK-25"]);
   });
 });
 
@@ -437,6 +465,13 @@ describe("computeSizeCohort", () => {
     const cohort = computeSizeCohort([cohortPr(1, ["TRK-7"])], issues, { listTruncated: true });
 
     expect(cohort.complete).toBe(false);
+  });
+
+  it("given a possibly partial issues export, marks it incomplete", () => {
+    const cohort = computeSizeCohort([cohortPr(1, ["TRK-7"])], issues, { issuesPartial: true });
+
+    expect(cohort.complete).toBe(false);
+    expect(cohort.reasons[0]).toContain("partial");
   });
 
   it("given a size:S issue with no merged PR, lists it as informational only", () => {

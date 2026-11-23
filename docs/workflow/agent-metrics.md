@@ -19,7 +19,10 @@ ADR-0011 sets the gate threshold on `size:S` PRs per milestone, not on all agent
 `--issues .agent-out/retro-inputs.md` (the file `linear.mjs retro-export` writes) to add a
 section `size:S merged unchanged: <milestone>`. The milestone name comes from the file heading.
 
-- A merged agent PR is joined to an issue through its `Fixes TRK-n` line.
+- A merged agent PR is joined to an issue through its `Fixes TRK-n` line. Only a whole line counts;
+  quotes, fenced code and inline examples are ignored.
+- The cohort is also `incomplete` when the issues export may be partial: it holds 250 issues
+  (the exporter's page size) or carries an `Export complete: false` line.
 - A PR whose single issue is in the milestone and labelled `size:S` is in the cohort. The
   numerator is the cohort PRs with no commit after ready-for-review (same rule as above).
   `--since` does not filter the cohort.

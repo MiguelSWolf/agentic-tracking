@@ -118,7 +118,10 @@ function main() {
   } catch (cause) {
     throw new Error(`Cannot read issues file ${issuesPath}: ${cause.message}`, { cause });
   }
-  const cohort = computeSizeCohort(prs, parsed.issues, { listTruncated: list.length >= PR_LIMIT });
+  const cohort = computeSizeCohort(prs, parsed.issues, {
+    listTruncated: list.length >= PR_LIMIT,
+    issuesPartial: parsed.partial,
+  });
   process.stdout.write(renderTable(metrics, { since, repo, cohort, milestone: parsed.milestone }));
 }
 

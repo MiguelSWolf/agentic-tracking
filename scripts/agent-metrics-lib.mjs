@@ -167,13 +167,30 @@ export function normalisePr(listItem, timeline, { truncated = false } = {}) {
   };
 }
 
-/** Distinct `TRK-n` ids from `Fixes TRK-n` references in a PR body. */
+/**
+ * Distinct `TRK-n` ids from closing lines in a PR body. A closing line is a whole line
+ * `Fixes TRK-n` (PR template convention). Fenced code, blockquotes and inline examples are ignored.
+ */
 export function fixesRefs(body) {
   if (typeof body !== "string") return [];
   const ids = new Set();
-  for (const m of body.matchAll(/\bfixes\s+(TRK-\d+)\b/gi)) ids.add(m[1].toUpperCase());
+  let fence = null;
+  for (const line of body.split(/\r?\n/)) {
+    const marker = /^\s*(```+|~~~+)/.exec(line);
+    if (marker !== null) {
+      if (fence === null) fence = marker[1][0];
+      else if (marker[1][0] === fence) fence = null;
+      continue;
+    }
+    if (fence !== null) continue;
+    const m = /^fixes\s+(TRK-\d+)\s*\.?\s*$/i.exec(line.trim());
+    if (m !== null) ids.add(m[1].toUpperCase());
+  }
   return [...ids];
 }
+
+/** The Linear exporter reads one page of this size (`issues(first: 250)`), so a full page may be partial. */
+export const EXPORT_PAGE_SIZE = 250;
 
 /**
  * Reads the file `linear.mjs retro-export` writes (`.agent-out/retro-inputs.md`).
@@ -195,7 +212,8 @@ export function parseIssues(markdown) {
     issues.set(m[1], size === null ? null : size[1]);
   }
   if (issues.size === 0) throw new Error("Issues file has no issue rows in the milestone table");
-  return { milestone: heading[1].trim(), issues };
+  const partial = /^Export complete: false$/m.test(markdown) || issues.size >= EXPORT_PAGE_SIZE;
+  return { milestone: heading[1].trim(), issues, partial };
 }
 
 function isUnchanged(pr) {
@@ -207,7 +225,11 @@ function isUnchanged(pr) {
  * @param prs normalised agent PRs
  * @param issues `parseIssues(...).issues`
  */
-export function computeSizeCohort(prs, issues, { listTruncated = false } = {}) {
+export function computeSizeCohort(
+  prs,
+  issues,
+  { listTruncated = false, issuesPartial = false } = {},
+) {
   const reasons = [];
   const counted = [];
   const covered = new Set();
@@ -242,6 +264,8 @@ export function computeSizeCohort(prs, issues, { listTruncated = false } = {}) {
     });
   }
   if (listTruncated) reasons.push("the PR list hit its cap");
+  if (issuesPartial)
+    reasons.push("the issues export may be partial, so milestone membership is unknown");
   const unmatched = [...issues].filter(([id, size]) => size === "size:S" && !covered.has(id));
   return {
     complete: reasons.length === 0,
