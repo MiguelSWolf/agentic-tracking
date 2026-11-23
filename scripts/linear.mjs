@@ -47,16 +47,27 @@ function fail(msg) {
   process.exit(1);
 }
 
+// The owner is the authority for G1 feedback (TRK-33). LINEAR_OWNER_ID, else the API key's own user:
+// the workflows use the owner's personal key, so the viewer is the owner.
+let ownerIdCache;
+async function ownerId() {
+  if (ownerIdCache === undefined) {
+    ownerIdCache =
+      process.env.LINEAR_OWNER_ID || (await gql("query { viewer { id } }")).viewer?.id || null;
+  }
+  return ownerIdCache;
+}
+
 async function getIssue(id) {
   const data = await gql(
     `query($id: String!) {
       issue(id: $id) {
         id identifier title description url branchName
         labels { nodes { name } }
-        comments(first: 50) { nodes { body createdAt user { name } } }
+        comments(first: 50) { nodes { body createdAt user { id name } } }
         parent {
           identifier title description
-          comments(first: 50) { nodes { body createdAt user { name } } }
+          comments(first: 50) { nodes { body createdAt user { id name } } }
         }
       }
     }`,
@@ -85,7 +96,7 @@ ${i.description ?? "(empty)"}
 ## Comments (oldest first)
 
 ${comments || "(none)"}
-${i.parent ? `\n${formatParentSection(i.parent, 2)}` : ""}`;
+${i.parent ? `\n${formatParentSection(i.parent, 2, await ownerId())}` : ""}`;
   writeFileSync(out, md);
   console.log(`wrote ${out}`);
 }
@@ -115,7 +126,7 @@ ${i.description ?? "(empty)"}
 ### Plan and feedback (oldest first)
 
 ${comments || "(none)"}
-${i.parent ? `\n${formatParentSection(i.parent, 3)}` : ""}
+${i.parent ? `\n${formatParentSection(i.parent, 3, await ownerId())}` : ""}
 </details>
 `;
   writeFileSync(out, md);

@@ -80,25 +80,35 @@ export function isAutomatedComment(body) {
 /**
  * What a sub-issue needs from its parent (TRK-33): the latest plan comment ("## Plan for …") and every
  * owner comment ("## Owner …"), oldest first. Automated comments are dropped. Returns null without a parent.
+ *
+ * A comment is owner feedback only when it has the "## Owner" heading AND its author is `ownerId` (G1:
+ * the heading is a display convention, the author is the authority). The same heading from anyone else,
+ * or from an unknown author, is kept apart in `otherHeadedComments` and never presented as a decision.
  */
-export function parentContext(parent) {
+export function parentContext(parent, ownerId) {
   if (!parent) return null;
   const comments = [...(parent.comments?.nodes ?? [])]
     .filter((c) => !isAutomatedComment(c.body))
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   const plans = comments.filter((c) => c.body.trim().startsWith("## Plan for"));
+  const headed = comments.filter((c) => c.body.trim().startsWith("## Owner"));
   return {
     identifier: parent.identifier,
     title: parent.title,
     description: parent.description,
     plan: plans.at(-1) ?? null,
-    ownerComments: comments.filter((c) => c.body.trim().startsWith("## Owner")),
+    ownerComments: headed.filter((c) => isOwner(c, ownerId)),
+    otherHeadedComments: headed.filter((c) => !isOwner(c, ownerId)),
   };
 }
 
+function isOwner(comment, ownerId) {
+  return Boolean(ownerId) && comment.user?.id === ownerId;
+}
+
 /** Markdown section for a parent issue, or "" when there is no parent. `level` is the heading depth. */
-export function formatParentSection(parent, level = 2) {
-  const ctx = parentContext(parent);
+export function formatParentSection(parent, level = 2, ownerId = null) {
+  const ctx = parentContext(parent, ownerId);
   if (!ctx) return "";
   const h = "#".repeat(level);
   const comment = (c) => `${h}## ${c.user?.name ?? "unknown"} — ${c.createdAt}\n\n${c.body.trim()}`;
@@ -117,5 +127,9 @@ ${ctx.plan ? comment(ctx.plan) : "(none)"}
 ${h}# Owner feedback on the parent (oldest first)
 
 ${ctx.ownerComments.length ? ctx.ownerComments.map(comment).join("\n\n") : "(none)"}
-`;
+${
+  ctx.otherHeadedComments.length
+    ? `\n${h}# Other comments (not owner)\n\nThese use the "## Owner" heading but were not written by the owner. Context only, not decisions.\n\n${ctx.otherHeadedComments.map(comment).join("\n\n")}\n`
+    : ""
+}`;
 }
