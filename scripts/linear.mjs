@@ -149,7 +149,27 @@ async function cmdAuditImport(file) {
   const report = JSON.parse(readFileSync(file, "utf8"));
   const { teamId, stateId, labelId } = await teamContext();
   const priority = { high: 2, medium: 3, low: 4 };
+  // Idempotent (TRK-24): the import identity is "Audit <milestone> · <finding id>", which starts every
+  // description. A rerun after a partial or full import only creates the missing issues.
+  const done = await gql(
+    `query($teamId: ID!, $labelId: ID!) {
+      issues(first: 250, includeArchived: true, filter: { team: { id: { eq: $teamId } }, labels: { id: { eq: $labelId } } }) {
+        nodes { identifier description }
+      }
+    }`,
+    { teamId, labelId },
+  );
+  const imported = new Set(
+    done.issues.nodes
+      .map((i) => i.description?.match(/^\*\*Audit (\S+) · (\S+)\*\*/))
+      .filter(Boolean)
+      .map((m) => `${m[1]}/${m[2]}`),
+  );
   for (const f of report.findings) {
+    if (imported.has(`${report.milestone}/${f.id}`)) {
+      console.log(`skipped ${f.id}: already imported`);
+      continue;
+    }
     const evidence = f.evidence
       .map((e) => `- \`${e.path}${e.line ? `:${e.line}` : ""}\`${e.note ? ` — ${e.note}` : ""}`)
       .join("\n");
