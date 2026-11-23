@@ -13,7 +13,8 @@
     "lint": "turbo run lint lint:root",
     "lint:root": "biome check package.json turbo.json biome.json tsconfig.base.json pnpm-workspace.yaml scripts",
     "typecheck": "turbo run typecheck",
-    "test": "turbo run test",
+    "test": "turbo run test test:scripts",
+    "test:scripts": "vitest run --dir scripts",
     "test:integration": "turbo run test:integration",
     "agent:metrics": "node scripts/agent-metrics.mjs",
     "adr:index": "node scripts/adr-index.mjs"

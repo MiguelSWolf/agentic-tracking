@@ -18,6 +18,10 @@
         "scripts/**"
       ]
     },
+    "//#test:scripts": {
+      "inputs": ["scripts/**"],
+      "outputs": []
+    },
     "typecheck": {
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/tsconfig.base.json"],
       "outputs": []
