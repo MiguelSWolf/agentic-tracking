@@ -76,6 +76,15 @@ Run `pnpm lint && pnpm typecheck && pnpm test` before every commit. Never commit
 - Small, reviewable diffs. If an issue needs more than ~400 changed lines, stop and propose a split.
 - Tests live next to code (`*.test.ts`); integration tests use `*.int.test.ts`.
 
+## Communication style
+
+- Chat replies, PR/issue comments and review-thread replies use the `caveman` skill
+  (`.agents/skills/caveman/`): terse, technical, no filler. Full detail only when the owner asks.
+- It does not apply to code, commit messages, ADRs, docs, specs or PR descriptions that the PR template
+  structures. Those keep the existing rules: plain English, complete sentences.
+- Safety-relevant detail (risks, protected-zone notes, failing checks) is never cut.
+- Where this section and the skill's "When to break the rules" list disagree, this section wins.
+
 ## Code standards
 
 Rules have stable IDs (`ES-nn`, `TS-nn`, `NODE-nn`, `TEST-nn`). Cite them in plans, PRs and
