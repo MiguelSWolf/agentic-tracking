@@ -40,4 +40,7 @@ Linear: follow [.github/linear-labels.md](.github/linear-labels.md) and import [
 2. GitHub → Actions → **agent-implement** → `issue_id=TRK-n`, `phase=plan` → plan appears on the Linear issue.
 3. Reply with changes (and re-run plan) or add `plan:approved` (G1).
 4. Run again with `phase=implement` → PR ready for review.
-5. `@claude <request>` on the PR to iterate (G3). Mark ready, approve, merge (G2).
+5. `@claude <request>` on the PR to iterate (G3), written as plain text. Approve and merge (G2).
+
+Full flow, gates and skills: [docs/workflow/README.md](docs/workflow/README.md). Process gaps found
+along the way: [docs/workflow/findings.md](docs/workflow/findings.md).
