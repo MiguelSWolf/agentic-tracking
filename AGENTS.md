@@ -129,7 +129,7 @@ and CODEOWNERS requires the owner's review:
 
 ```
 .github/   .agents/   .claude/   AGENTS.md   CLAUDE.md   docs/adr/   **/migrations/
-scripts/linear.mjs   scripts/linear-lib.mjs   docs/code-standards/
+scripts/linear.mjs   scripts/linear-lib.mjs   scripts/cancel-waiting-ci.mjs   docs/code-standards/
 ```
 
 To change a protected file, describe the proposed change in the PR or issue and let the owner apply it.
