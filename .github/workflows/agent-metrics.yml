@@ -1,0 +1,28 @@
+name: agent-metrics
+on:
+  workflow_dispatch:
+    inputs:
+      since:
+        description: "Start date (YYYY-MM-DD), empty = all history"
+        required: false
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+jobs:
+  metrics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 24, package-manager-cache: false }
+      - name: Print metrics to the job summary
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SINCE: ${{ inputs.since }}
+        run: |
+          if [ -n "$SINCE" ]; then
+            node scripts/agent-metrics.mjs --since "$SINCE" >> "$GITHUB_STEP_SUMMARY"
+          else
+            node scripts/agent-metrics.mjs >> "$GITHUB_STEP_SUMMARY"
+          fi
