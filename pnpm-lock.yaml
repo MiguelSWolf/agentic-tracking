@@ -37,6 +37,10 @@ importers:
         version: 5.1.1(@types/node@24.19.2)(vite@7.3.8(@types/node@24.19.2))
 
   apps/collector:
+    dependencies:
+      '@tracking/event-schemas':
+        specifier: workspace:*
+        version: link:../../packages/event-schemas
     devDependencies:
       typescript:
         specifier: ^7
