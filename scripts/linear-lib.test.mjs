@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { auditKey, closingIssue, findingsForMilestone, importAudit } from "./linear-lib.mjs";
+import {
+  auditKey,
+  closingIssue,
+  findingsForMilestone,
+  formatParentSection,
+  importAudit,
+  isAutomatedComment,
+  parentContext,
+} from "./linear-lib.mjs";
 
 const finding = (id, title) => ({
   id,
@@ -146,5 +154,110 @@ describe("findingsForMilestone", () => {
     const { unassigned } = findingsForMilestone(findings, m0);
 
     expect(unassigned.map((f) => f.identifier)).toEqual(["TRK-42"]);
+  });
+});
+
+// A parent like TRK-16: an owner context note, two plan runs, an automated status comment, G1 feedback.
+const comment = (body, createdAt, name = "Miguel Wolf") => ({ body, createdAt, user: { name } });
+const trk16 = {
+  identifier: "TRK-16",
+  title: "Code standards: structured, sourced rules for Node + TypeScript",
+  description: "Write the project's code standards as normative, reviewable rules.",
+  comments: {
+    nodes: [
+      comment(
+        "## Owner feedback (G1): option A, split into sub-issues\n\n- ADR-0013 is the authority.",
+        "2026-11-21T23:46:22Z",
+      ),
+      comment(
+        "## Plan for TRK-16: Code standards (second run)\n\nSplit into four slices.",
+        "2026-11-21T23:42:29Z",
+      ),
+      comment("## Plan for TRK-16: Code standards (first run)\n\nOne PR.", "2026-11-21T22:10:00Z"),
+      comment(
+        "Agent run failed (plan phase). Logs: https://github.com/…/runs/1",
+        "2026-11-21T22:00:00Z",
+        "github-actions",
+      ),
+      comment("## Owner context for planning\n\nUse RFC 2119.", "2026-11-21T21:50:00Z"),
+      comment("Looks good to me", "2026-11-21T23:50:00Z"),
+    ],
+  },
+};
+
+describe("isAutomatedComment", () => {
+  it("with a workflow status comment, returns true", () => {
+    expect(isAutomatedComment("  Agent run failed (implement phase).")).toBe(true);
+    expect(isAutomatedComment("PR opened by Claude: https://github.com/…/pull/39")).toBe(true);
+    expect(isAutomatedComment("Draft PR opened by Claude: https://github.com/…/pull/9")).toBe(true);
+  });
+
+  it("with a human comment, returns false", () => {
+    expect(isAutomatedComment("## Owner feedback (G1): approved")).toBe(false);
+  });
+});
+
+describe("parentContext", () => {
+  it("with no parent, returns null", () => {
+    expect(parentContext(null)).toBeNull();
+  });
+
+  it("with two plan runs, keeps only the latest plan", () => {
+    const ctx = parentContext(trk16);
+
+    expect(ctx.plan.body).toContain("second run");
+  });
+
+  it("with owner comments before and after the plan, keeps all of them oldest first", () => {
+    const ctx = parentContext(trk16);
+
+    expect(ctx.ownerComments.map((c) => c.body.split("\n")[0])).toEqual([
+      "## Owner context for planning",
+      "## Owner feedback (G1): option A, split into sub-issues",
+    ]);
+  });
+
+  it("with an automated status comment and a casual reply, leaves both out", () => {
+    const ctx = parentContext(trk16);
+    const kept = [ctx.plan, ...ctx.ownerComments].map((c) => c.body);
+
+    expect(kept.some((b) => b.startsWith("Agent run failed"))).toBe(false);
+    expect(kept).not.toContain("Looks good to me");
+  });
+
+  it("with a parent that has no plan yet, returns a null plan", () => {
+    const ctx = parentContext({ ...trk16, comments: { nodes: [] } });
+
+    expect(ctx.plan).toBeNull();
+    expect(ctx.ownerComments).toEqual([]);
+  });
+});
+
+describe("formatParentSection", () => {
+  it("with no parent, returns an empty string", () => {
+    expect(formatParentSection(undefined)).toBe("");
+  });
+
+  it("with a parent, renders the heading, description, latest plan and owner feedback", () => {
+    const md = formatParentSection(trk16);
+
+    expect(
+      md.startsWith(
+        "## Parent issue TRK-16: Code standards: structured, sourced rules for Node + TypeScript",
+      ),
+    ).toBe(true);
+    expect(md).toContain("Write the project's code standards");
+    expect(md).toContain("## Plan for TRK-16: Code standards (second run)");
+    expect(md).not.toContain("(first run)");
+    expect(md).toContain("ADR-0013 is the authority.");
+    expect(md).not.toContain("Agent run failed");
+  });
+
+  it("with level 3 (inside the PR context), nests every heading one deeper", () => {
+    const md = formatParentSection(trk16, 3);
+
+    expect(md.startsWith("### Parent issue TRK-16")).toBe(true);
+    expect(md).toContain("#### Parent plan (latest)");
+    expect(md).toContain("##### Miguel Wolf — 2026-11-21T23:42:29Z");
   });
 });

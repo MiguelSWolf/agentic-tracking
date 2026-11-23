@@ -14,7 +14,13 @@
 //   node scripts/linear.mjs retro-export <TRK-n> <out.md>  milestone issues + source:finding issues for the retro skill
 
 import { readFileSync, writeFileSync } from "node:fs";
-import { closingIssue, findingsForMilestone, importAudit } from "./linear-lib.mjs";
+import {
+  closingIssue,
+  findingsForMilestone,
+  formatParentSection,
+  importAudit,
+  isAutomatedComment,
+} from "./linear-lib.mjs";
 
 const API = "https://api.linear.app/graphql";
 const KEY = process.env.LINEAR_API_KEY;
@@ -48,6 +54,10 @@ async function getIssue(id) {
         id identifier title description url branchName
         labels { nodes { name } }
         comments(first: 50) { nodes { body createdAt user { name } } }
+        parent {
+          identifier title description
+          comments(first: 50) { nodes { body createdAt user { name } } }
+        }
       }
     }`,
     { id },
@@ -75,19 +85,18 @@ ${i.description ?? "(empty)"}
 ## Comments (oldest first)
 
 ${comments || "(none)"}
-`;
+${i.parent ? `\n${formatParentSection(i.parent, 2)}` : ""}`;
   writeFileSync(out, md);
   console.log(`wrote ${out}`);
 }
 
 // Human context for the PR body: the issue description plus the plan and owner feedback,
 // without the workflow's own status comments. Keeps GitHub the single place to read a change.
-const AUTOMATED = [/^Agent run failed/, /^(Draft )?PR opened by Claude/];
 
 async function cmdPrContext(id, out) {
   const i = await getIssue(id);
   const comments = [...i.comments.nodes]
-    .filter((c) => !AUTOMATED.some((re) => re.test(c.body.trim())))
+    .filter((c) => !isAutomatedComment(c.body))
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
     .map(
       (c) =>
@@ -106,7 +115,7 @@ ${i.description ?? "(empty)"}
 ### Plan and feedback (oldest first)
 
 ${comments || "(none)"}
-
+${i.parent ? `\n${formatParentSection(i.parent, 3)}` : ""}
 </details>
 `;
   writeFileSync(out, md);

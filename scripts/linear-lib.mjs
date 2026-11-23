@@ -69,3 +69,53 @@ export function findingsForMilestone(findings, milestoneId) {
     unassigned: findings.filter((f) => !f.projectMilestone),
   };
 }
+
+// The workflow's own status comments: never part of the context an agent or a reviewer reads.
+const AUTOMATED = [/^Agent run failed/, /^(Draft )?PR opened by Claude/];
+
+export function isAutomatedComment(body) {
+  return AUTOMATED.some((re) => re.test((body ?? "").trim()));
+}
+
+/**
+ * What a sub-issue needs from its parent (TRK-33): the latest plan comment ("## Plan for …") and every
+ * owner comment ("## Owner …"), oldest first. Automated comments are dropped. Returns null without a parent.
+ */
+export function parentContext(parent) {
+  if (!parent) return null;
+  const comments = [...(parent.comments?.nodes ?? [])]
+    .filter((c) => !isAutomatedComment(c.body))
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  const plans = comments.filter((c) => c.body.trim().startsWith("## Plan for"));
+  return {
+    identifier: parent.identifier,
+    title: parent.title,
+    description: parent.description,
+    plan: plans.at(-1) ?? null,
+    ownerComments: comments.filter((c) => c.body.trim().startsWith("## Owner")),
+  };
+}
+
+/** Markdown section for a parent issue, or "" when there is no parent. `level` is the heading depth. */
+export function formatParentSection(parent, level = 2) {
+  const ctx = parentContext(parent);
+  if (!ctx) return "";
+  const h = "#".repeat(level);
+  const comment = (c) => `${h}## ${c.user?.name ?? "unknown"} — ${c.createdAt}\n\n${c.body.trim()}`;
+  return `${h} Parent issue ${ctx.identifier}: ${ctx.title}
+
+This issue is a sub-issue. Its parent's plan and the owner's decisions apply here too.
+
+${h}# Parent description
+
+${ctx.description ?? "(empty)"}
+
+${h}# Parent plan (latest)
+
+${ctx.plan ? comment(ctx.plan) : "(none)"}
+
+${h}# Owner feedback on the parent (oldest first)
+
+${ctx.ownerComments.length ? ctx.ownerComments.map(comment).join("\n\n") : "(none)"}
+`;
+}
