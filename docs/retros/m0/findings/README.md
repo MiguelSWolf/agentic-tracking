@@ -4,7 +4,7 @@
 
 Process and tooling gaps found while running the agentic loop in M0. They are recorded as soon as they are noticed, by agents (in the same PR), by the workflows (a Linear issue labelled `finding`, imported by the retro) or by the owner. The milestone retro records a decision for each one. See [docs/workflow/findings.md](../../../workflow/findings.md).
 
-**12 findings, 8 still open.**
+**13 findings, 8 still open.**
 
 | ID | Finding | Area | Source | Status |
 | --- | --- | --- | --- | --- |
@@ -20,3 +20,4 @@ Process and tooling gaps found while running the agentic loop in M0. They are re
 | [F-010](F-010-coderabbit-bot-prs.md) | CodeRabbit skips every PR authored by `github-actions[bot]` | Review (CodeRabbit) | owner | open |
 | [F-011](F-011-test-15-vs-es-06.md) | TEST-15 said `valid/` and `invalid/` folders, while ES-06 and the skill use flat files | Code standards | agent | fixed ([#22](https://github.com/MiguelSWolf/agentic-tracking/pull/22)) |
 | [F-012](F-012-biome-warnings-dont-fail.md) | Recommended Biome rules report at `warn`/`info` and never fail CI | Code standards | agent | in progress (TRK-21) |
+| [F-013](F-013-guard-merge-commit-diff.md) | The protected-paths guard flagged files that changed on main, not on the agent branch | CI | owner | fixed (#27) |
