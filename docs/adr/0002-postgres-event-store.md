@@ -1,6 +1,6 @@
 # ADR-0002: PostgreSQL is the event store
 
-- Status: Accepted
+- Status: Superseded by ADR-0014
 - Date: 2026-11-20
 - Tags: event-store, postgres, event-sourcing, replay
 
