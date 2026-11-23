@@ -57,8 +57,13 @@ Findings: P1 ×n, P2 ×n, P3 ×n
 
 <one line per finding, with a link to its inline comment>
 ```
-If there is anything to fix, end with a **plain-text** block the owner can paste as a PR comment.
-Never use a formatted mention: a linked or bold `@claude` does not trigger the agent (F-002).
+If there is anything to fix, the reviewer must publish the request below as a separate top-level
+comment in the GitHub PR conversation after posting the inline findings and review summary. Start
+the posted comment with a literal `@claude` in plain text. Do not bold it, link it manually, or
+wrap the mention or the request in backticks or a code block (F-002).
+
+Verify that the comment appears on the PR and link it in your response. If posting is unavailable
+or fails, report the blocker and provide the plain-text request for the owner to post.
 
     @claude please address the review comments on this PR, commit the fixes on this branch and reply to each thread:
     1. [P2] <file>:<line> — <fix>
