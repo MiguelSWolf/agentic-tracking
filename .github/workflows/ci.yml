@@ -24,9 +24,11 @@ jobs:
       - name: Check changed paths
         run: |
           BRANCH="${{ github.head_ref || github.ref_name }}"
-          BASE="${{ github.event.pull_request.base.sha }}"
-          [ -n "$BASE" ] || BASE=origin/main
-          CHANGED=$(git diff --name-only "$BASE"...HEAD)
+          # Compare the branch tip, not the PR merge commit: base.sha can be older than main,
+          # and the merge commit then drags in protected files changed on main (F-013).
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          [ -n "$HEAD_SHA" ] || HEAD_SHA=HEAD
+          CHANGED=$(git diff --name-only origin/main..."$HEAD_SHA")
           echo "$CHANGED"
           if [[ "$BRANCH" == audit/* ]]; then
             BAD=$(echo "$CHANGED" | grep -vE '^docs/audits/[^/]+\.(md|json)$' || true)
