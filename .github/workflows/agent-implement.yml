@@ -159,6 +159,27 @@ jobs:
           printf 'PR opened by Claude: %s\n\nNext: owner review → merge (G2).\n' "$PR" > .agent-out/comment.md
           node scripts/linear.mjs comment "$ISSUE_ID" .agent-out/comment.md
 
+      # A PR opened with GITHUB_TOKEN gets a `pull_request` ci run by github-actions[bot] that waits for
+      # approval with no jobs, then turns red when the PR closes (F-007, TRK-34). The dispatched ci run
+      # above already checks this commit, so cancel the waiting duplicate. Never fails the job.
+      - name: Cancel the bot-triggered pull_request CI run
+        if: env.PHASE == 'implement'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          SHA=$(git rev-parse HEAD)
+          for attempt in 1 2 3 4 5 6; do
+            IDS=$(gh api "repos/${{ github.repository }}/actions/workflows/ci.yml/runs?event=pull_request&head_sha=$SHA" \
+              --jq '.workflow_runs[] | select(.actor.login == "github-actions[bot]" and .status != "completed") | .id' || true)
+            [ -n "$IDS" ] && break
+            sleep 5
+          done
+          for id in $IDS; do
+            gh api -X POST "repos/${{ github.repository }}/actions/runs/$id/cancel" > /dev/null \
+              && echo "Cancelled bot-triggered pull_request run $id" || echo "::warning::Could not cancel run $id"
+          done
+          [ -n "$IDS" ] || echo "No waiting bot-triggered pull_request run found for $SHA"
+
       # Debugging: keep Claude's full transcript and tell Linear when a run fails.
       - name: Upload Claude transcript
         if: always() && steps.claude.outputs.execution_file != ''
