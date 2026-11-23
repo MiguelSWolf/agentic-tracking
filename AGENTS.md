@@ -140,3 +140,4 @@ Prioritise, in order: violations of the invariants above, missing contract/repla
 ADR violations (check `docs/adr/README.md`), behaviour changes without the matching spec/doc update
 (ADR-0012), correctness bugs, security/privacy issues, code-standard violations (cite the rule ID).
 Skip style nits that Biome already enforces.
+Follow the `review-pr` skill (`.agents/skills/review-pr/`) for the order, the `[P1–P3]` comment format and the summary.
