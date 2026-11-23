@@ -51,10 +51,18 @@ Read `AGENTS.md`, the ADR index (`docs/adr/README.md`) and every ADR it points y
      choices that came from owner feedback. Write "None" only if there truly were none.
    - **How to review**: where to start, what needs the most attention, what is safe to skim.
    - Acceptance criteria mapped to evidence, verification commands, ADRs, out-of-scope findings.
-   - Raw command output, plan deviations and assumptions go in the collapsed **Agent notes**.
+   - Raw command output, plan deviations and assumptions go under the **Agent notes** heading.
+     Do not add your own `<details>` wrapper: the workflow already collapses that section (F-008).
+   - **Process findings**: list any finding files you added (see step 6), or write "None".
    - Short sentences, no filler, no marketing tone. Fill every section; write "None" when empty.
    Write a one-line title to `.agent-out/pr-title.txt` (`<type>(<scope>): <summary>`).
-6. Stop. **Do not push and do not open the PR**: the workflow pushes your branch and opens the
+6. **Record process gaps.** If you hit a gap in the process or tooling during the run, add a finding
+   file in this branch, following `docs/workflow/findings.md`. Examples: a denied command, context you
+   could not reach (such as the parent issue), a rule that contradicts another, or a workaround you had to use.
+   Get the ID with `node scripts/findings-index.mjs --next <milestone>`, then run `pnpm findings:index`.
+   Commit it separately: `docs(retros): record F-NNN <slug>`. Product bugs are not findings: put them under
+   "Out of scope findings".
+7. Stop. **Do not push and do not open the PR**: the workflow pushes your branch and opens the
    draft PR with the files above. `.agent-out/` is git-ignored; never commit it.
 
 ## Shell hygiene (CI permissions are strict)
@@ -63,6 +71,11 @@ Read `AGENTS.md`, the ADR index (`docs/adr/README.md`) and every ADR it points y
   often denied as a whole.
 - Run formatters and linters scoped to the paths you changed, never on the whole repo, so they
   cannot rewrite protected zones.
+
+## Iterating on a PR (`@claude`)
+
+Follow the **Respond** mode of the `review-pr` skill: fix each item, run the checks, and reply to every
+review thread with the commit.
 
 ## Never
 

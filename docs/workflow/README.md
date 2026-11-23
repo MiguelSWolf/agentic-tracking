@@ -3,6 +3,7 @@
 How work flows from a Linear issue to a merged PR. This page links to the sources of the
 rules; it does not copy them. Policy on docs: [ADR-0012](../adr/0012-living-specs-and-docs.md).
 Gate calibration: [ADR-0011](../adr/0011-calibration-metrics.md).
+Process gaps found along the way: [findings.md](findings.md).
 
 ## Roles
 
@@ -38,6 +39,7 @@ Gate calibration: [ADR-0011](../adr/0011-calibration-metrics.md).
 - Rules for every agent: [`AGENTS.md`](../../AGENTS.md)
 - Skills (in `.agents/skills/`):
   - [`issue-flow`](../../.agents/skills/issue-flow/SKILL.md)
+  - [`review-pr`](../../.agents/skills/review-pr/SKILL.md): how to review a PR and apply review feedback
   - [`write-adr`](../../.agents/skills/write-adr/SKILL.md)
   - [`new-event-type`](../../.agents/skills/new-event-type/SKILL.md)
   - [`new-projection`](../../.agents/skills/new-projection/SKILL.md)

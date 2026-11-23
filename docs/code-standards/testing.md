@@ -442,12 +442,14 @@ These rules say how to write the tests that other rules require.
 
 ### TEST-15: Write contract tests from the fixture folders
 
-**MUST** write the contract test of an event version as a table over its fixture folders: every
-`valid/` fixture parses, every `invalid/` fixture fails, and the invalid case asserts the failing
-path (`issues[0].path`), not only `success === false`. This is how to satisfy
+**MUST** write the contract test of an event version as a table over its fixture folder
+(`fixtures/<Type>.v<N>/`): every `valid-*.json` parses, every `invalid-*.json` fails, and the invalid
+case asserts the failing path (`issues[0].path`), not only `success === false`. An invalid fixture
+holds `{ "expected_path": [...], "input": {...} }` and breaks exactly one thing, so the first issue
+is deterministic. This is how to satisfy
 [ES-06](event-sourcing.md#es-06-ship-fixtures-and-a-contract-test-per-version).
 
-**Why.** A table over folders makes a new fixture a test without code. Asserting the path proves the
+**Why.** A table over the folder makes a new fixture a test without code. Asserting the path proves the
 schema rejects the input for the right reason.
 
 **Example.** (illustrative)
