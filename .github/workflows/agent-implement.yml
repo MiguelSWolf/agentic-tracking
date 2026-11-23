@@ -155,3 +155,15 @@ jobs:
           printf 'Agent run failed (%s phase). Logs and Claude transcript: %s/%s/actions/runs/%s\n' \
             "$PHASE" "${{ github.server_url }}" "${{ github.repository }}" "${{ github.run_id }}" > .agent-out/failure.md
           node scripts/linear.mjs comment "$ISSUE_ID" .agent-out/failure.md || true
+
+      - name: Record a finding (docs/workflow/findings.md)
+        if: always() && steps.claude.outcome != 'skipped'
+        run: |
+          mkdir -p .agent-out
+          node scripts/run-findings.mjs --workflow agent-implement --target "$ISSUE_ID ($PHASE)" \
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --job-status "${{ job.status }}" --execution "${{ steps.claude.outputs.execution_file }}" \
+            --out .agent-out/finding.md
+          if [ -f .agent-out/finding.md ]; then
+            node scripts/linear.mjs finding .agent-out/finding.md.title .agent-out/finding.md || true
+          fi

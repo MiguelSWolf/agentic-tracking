@@ -33,7 +33,7 @@ Get the next ID with `node scripts/findings-index.mjs --next <milestone>`.
 | Source | How |
 | --- | --- |
 | An agent hits a gap during a run: a denied command, missing context, a workaround | The agent adds the finding file **in the same PR**, following its skill, and lists it in the PR body. |
-| A workflow run fails | The failure step opens a Linear issue labelled `finding`, with the run link. A failed run has no PR to write to. The retro imports these issues as files. |
+| An agent run fails or is degraded: the job failed, Claude stopped early (for example at the turn cap), or a tool call was denied | The last step of `agent-implement` and `agent-pr-iterate` runs `scripts/run-findings.mjs` on the run's execution file. If it finds a signal, `scripts/linear.mjs finding` opens a Linear issue labelled `source:finding` with the run link. The same signals on the same target add a comment to the open issue instead of creating a duplicate. The retro imports these issues as files. |
 | The owner or a reviewer notices something | Add the file in a PR. |
 
 ## How they are closed
