@@ -13,3 +13,7 @@
 ## Proposed fix
 
 TRK-21.
+
+## Decision
+
+In progress in TRK-21 (Backlog). It carries over to M1.

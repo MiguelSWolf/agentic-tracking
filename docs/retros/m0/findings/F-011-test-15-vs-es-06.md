@@ -13,3 +13,7 @@ Found by the agent during the TRK-8 replan.
 ## Proposed fix
 
 PR #22 aligned TEST-15 with ES-06.
+
+## Decision
+
+Fixed. [#22](https://github.com/MiguelSWolf/agentic-tracking/pull/22) is merged (`b1e989c`).
