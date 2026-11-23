@@ -4,7 +4,7 @@
 // Protected zone itself: this file and guard-paths.mjs decide what an agent may change.
 
 const PROTECTED =
-  /^(\.github\/|\.agents\/|\.claude\/|AGENTS\.md$|CLAUDE\.md$|docs\/adr\/|scripts\/linear(-lib)?\.mjs$|scripts\/guard-paths(-lib)?\.mjs$|docs\/code-standards\/)/;
+  /^(\.github\/|\.agents\/|\.claude\/|AGENTS\.md$|CLAUDE\.md$|docs\/adr\/|scripts\/linear(-lib)?\.mjs$|scripts\/guard-paths(-lib)?\.mjs$|scripts\/cancel-waiting-ci\.mjs$|docs\/code-standards\/)/;
 const MIGRATIONS = /(^|\/)migrations\//;
 const AUDIT_ALLOWED = /^docs\/audits\/[^/]+\.(md|json)$/;
 

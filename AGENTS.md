@@ -130,6 +130,7 @@ and CODEOWNERS requires the owner's review:
 ```
 .github/   .agents/   .claude/   AGENTS.md   CLAUDE.md   docs/adr/   **/migrations/ (existing files)
 scripts/linear.mjs   scripts/linear-lib.mjs   scripts/guard-paths.mjs   scripts/guard-paths-lib.mjs
+scripts/cancel-waiting-ci.mjs
 docs/code-standards/
 ```
 

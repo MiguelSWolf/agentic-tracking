@@ -126,7 +126,7 @@ jobs:
             --model ${{ env.MODEL_OVERRIDE != 'default' && env.MODEL_OVERRIDE || (env.PHASE == 'plan' && 'claude-opus-5-5' || 'claude-sonnet-5-5') }}
             --max-turns ${{ env.PHASE == 'plan' && '40' || '60' }}
             --allowedTools "Read,Glob,Grep,Write,Edit,Bash(pnpm:*),Bash(git:*),Bash(node:*),Bash(ls:*),Bash(cat:*),Bash(head:*),Bash(tail:*),Bash(grep:*),Bash(wc:*),Bash(mkdir:*),Bash(echo:*),WebFetch(domain:google.github.io),WebFetch(domain:github.com),WebFetch(domain:raw.githubusercontent.com),WebFetch(domain:diataxis.fr),WebFetch(domain:www.rfc-editor.org),WebFetch(domain:www.postgresql.org),WebFetch(domain:martinfowler.com),WebFetch(domain:learn.microsoft.com),WebFetch(domain:www.mongodb.com)"
-            --disallowedTools "Edit(.github/**),Write(.github/**),Edit(.agents/**),Write(.agents/**),Edit(.claude/**),Write(.claude/**),Edit(AGENTS.md),Write(AGENTS.md),Edit(CLAUDE.md),Write(CLAUDE.md),Edit(docs/adr/**),Write(docs/adr/**),Edit(**/migrations/**),Edit(scripts/linear.mjs),Write(scripts/linear.mjs),Edit(scripts/linear-lib.mjs),Write(scripts/linear-lib.mjs),Edit(scripts/guard-paths.mjs),Write(scripts/guard-paths.mjs),Edit(scripts/guard-paths-lib.mjs),Write(scripts/guard-paths-lib.mjs),Edit(docs/code-standards/**),Write(docs/code-standards/**),Bash(git push:*),Bash(gh:*)"
+            --disallowedTools "Edit(.github/**),Write(.github/**),Edit(.agents/**),Write(.agents/**),Edit(.claude/**),Write(.claude/**),Edit(AGENTS.md),Write(AGENTS.md),Edit(CLAUDE.md),Write(CLAUDE.md),Edit(docs/adr/**),Write(docs/adr/**),Edit(**/migrations/**),Edit(scripts/linear.mjs),Write(scripts/linear.mjs),Edit(scripts/linear-lib.mjs),Write(scripts/linear-lib.mjs),Edit(scripts/guard-paths.mjs),Write(scripts/guard-paths.mjs),Edit(scripts/guard-paths-lib.mjs),Write(scripts/guard-paths-lib.mjs),Edit(scripts/cancel-waiting-ci.mjs),Write(scripts/cancel-waiting-ci.mjs),Edit(docs/code-standards/**),Write(docs/code-standards/**),Bash(git push:*),Bash(gh:*)"
 
       - name: Post plan to Linear (G1)
         if: env.PHASE == 'plan'
@@ -159,6 +159,18 @@ jobs:
           gh pr comment "$PR" --body "@coderabbitai review"
           printf 'PR opened by Claude: %s\n\nNext: owner review → merge (G2).\n' "$PR" > .agent-out/comment.md
           node scripts/linear.mjs comment "$ISSUE_ID" .agent-out/comment.md
+
+      # A PR opened with GITHUB_TOKEN gets a `pull_request` ci run by github-actions[bot] that waits for
+      # approval with no jobs, then turns red when the PR closes (F-007, TRK-34). The dispatched ci run
+      # above already checks this commit. Remove only that waiting, job-less duplicate; never a queued,
+      # running or approved run. Never fails the job.
+      - name: Remove the waiting bot-triggered pull_request CI run
+        if: env.PHASE == 'implement'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sleep 10
+          node scripts/cancel-waiting-ci.mjs "${{ github.repository }}" "$(git rev-parse HEAD)" || true
 
       # Debugging: keep Claude's full transcript and tell Linear when a run fails.
       - name: Upload Claude transcript
