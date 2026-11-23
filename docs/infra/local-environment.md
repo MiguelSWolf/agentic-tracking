@@ -18,7 +18,7 @@ pnpm dev
 
 ## Services
 
-| Service | Image | Host port | URL / connection string |
+| Service | Image | Host bind (`127.0.0.1:<port>`) | URL / connection string |
 | --- | --- | --- | --- |
 | `postgres` (event store) | `postgres:16` | `POSTGRES_PORT` (5432) | `postgres://tracking:tracking@localhost:5432/tracking` |
 | `mongo` (projections) | `mongo:7` | `MONGO_PORT` (27017) | `mongodb://localhost:27017/tracking` |
@@ -30,6 +30,12 @@ Notes:
 
 - Metabase stores its own data in `metabase-db`, never in the event store.
 - Mongo runs without auth. This is for local use only.
+- All published ports bind to `127.0.0.1`, so the services are reachable only from the host itself, not from the LAN.
+  Containers still reach each other over the compose network (for example `postgres:5432`).
+- To expose a port deliberately (for example to another machine), use a local, uncommitted `compose.override.yml`
+  or an SSH tunnel. Mongo has no auth and Postgres uses a default password, so do this only on a trusted network.
+- The bind is IPv4 only. If a tool resolves `localhost` to `::1` first and the connection is refused, use `127.0.0.1`
+  in its connection string.
 - Metabase uses host port 3030 so that 3000 stays free for the apps.
 - Metabase takes up to about two minutes to become healthy on first start.
 - Images for `postgres` and `mongo` follow the major version. Metabase and n8n are pinned to an exact version.

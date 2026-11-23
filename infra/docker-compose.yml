@@ -1,5 +1,6 @@
 # Local infrastructure (ADR-0010). Run through `pnpm infra:up` so the root .env is read.
 # Every variable has a default that matches .env.example, so no .env is required.
+# Published ports bind to loopback (127.0.0.1) only: the services are not reachable from the LAN.
 name: agentic-tracking
 
 services:
@@ -11,7 +12,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tracking}
       POSTGRES_DB: ${POSTGRES_DB:-tracking}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -24,7 +25,7 @@ services:
   mongo:
     image: mongo:7
     ports:
-      - "${MONGO_PORT:-27017}:27017"
+      - "127.0.0.1:${MONGO_PORT:-27017}:27017"
     volumes:
       - mongo-data:/data/db
     healthcheck:
@@ -61,7 +62,7 @@ services:
       MB_DB_USER: ${METABASE_DB_USER:-metabase}
       MB_DB_PASS: ${METABASE_DB_PASSWORD:-metabase}
     ports:
-      - "${METABASE_PORT:-3030}:3000"
+      - "127.0.0.1:${METABASE_PORT:-3030}:3000"
     healthcheck:
       test: ["CMD-SHELL", "curl --fail -s http://localhost:3000/api/health"]
       interval: 10s
@@ -75,7 +76,7 @@ services:
       GENERIC_TIMEZONE: ${GENERIC_TIMEZONE:-UTC}
       N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-}
     ports:
-      - "${N8N_PORT:-5678}:5678"
+      - "127.0.0.1:${N8N_PORT:-5678}:5678"
     volumes:
       - n8n-data:/home/node/.n8n
     healthcheck:
