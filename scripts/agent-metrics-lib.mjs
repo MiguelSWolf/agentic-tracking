@@ -58,16 +58,33 @@ function isBot(author) {
   return author.__typename === "Bot" || String(author.login ?? "").endsWith("[bot]");
 }
 
+// Only plain-text, standalone `@claude` mentions trigger the agent. Fenced and inline code,
+// quoted lines, formatted mentions (`**@claude**`, `[@claude]`) and longer handles
+// (`@claude-bot`, `@claudette`) do not.
+const TRIGGER = /(?<![\w@/.*_`[\]-])@claude(?![\w\-*_`[\]/@])/;
+
+export function hasClaudeRequest(body) {
+  if (typeof body !== "string") return false;
+  const text = body
+    .replace(/^ {0,3}(```|~~~)[^\n]*\n[\s\S]*?(^ {0,3}\1[^\n]*$|(?![\s\S]))/gm, "")
+    .replace(/`[^`\n]*`/g, "")
+    .split("\n")
+    .filter((line) => !/^\s{0,3}>/.test(line))
+    .join("\n");
+  return TRIGGER.test(text);
+}
+
 function mentionsClaude(item) {
-  return !isBot(item.author) && typeof item.body === "string" && item.body.includes("@claude");
+  return !isBot(item.author) && hasClaudeRequest(item.body);
 }
 
 /**
  * Turns raw `gh` JSON into the shape computeMetrics needs.
  * @param listItem one item of `gh pr list --json number,createdAt,mergedAt,...`
  * @param timeline array of GraphQL timeline nodes (with __typename)
+ * @param options `truncated`: the timeline has more pages than were read
  */
-export function normalisePr(listItem, timeline) {
+export function normalisePr(listItem, timeline, { truncated = false } = {}) {
   const number = listItem?.number;
   if (!Number.isInteger(number)) {
     throw new Error("PR list item has no integer number");
@@ -84,6 +101,7 @@ export function normalisePr(listItem, timeline) {
   let readyAt = null;
   const commitDates = [];
   let claudeRounds = 0;
+  let roundsIncomplete = truncated;
   for (const node of timeline) {
     switch (node?.__typename) {
       case "ReadyForReviewEvent": {
@@ -99,6 +117,7 @@ export function normalisePr(listItem, timeline) {
         break;
       case "PullRequestReview": {
         const inline = node.comments?.nodes ?? [];
+        if (node.comments?.pageInfo?.hasNextPage) roundsIncomplete = true;
         if (mentionsClaude(node) || inline.some(mentionsClaude)) claudeRounds += 1;
         break;
       }
@@ -106,7 +125,15 @@ export function normalisePr(listItem, timeline) {
         break;
     }
   }
-  return { number, createdAt, mergedAt, readyAt: readyAt ?? createdAt, commitDates, claudeRounds };
+  return {
+    number,
+    createdAt,
+    mergedAt,
+    readyAt: readyAt ?? createdAt,
+    commitDates,
+    claudeRounds,
+    roundsIncomplete,
+  };
 }
 
 /** @param prs normalised agent PRs */
@@ -119,11 +146,15 @@ export function computeMetrics(prs, { since = null } = {}) {
     pr.commitDates.every((date) => Date.parse(date) <= Date.parse(pr.readyAt)),
   );
 
+  // A truncated page can hide requests, so the rounds median is withheld, not understated.
+  const roundsIncomplete = merged.some((pr) => pr.roundsIncomplete === true);
+
   return {
     opened: opened.length,
     merged: merged.length,
     mergedUnchangedPct: merged.length === 0 ? null : (unchanged.length / merged.length) * 100,
-    medianClaudeRounds: median(merged.map((pr) => pr.claudeRounds)),
+    medianClaudeRounds: roundsIncomplete ? null : median(merged.map((pr) => pr.claudeRounds)),
+    claudeRoundsIncomplete: roundsIncomplete,
     medianDraftToMergeHours: median(
       merged.map((pr) => (Date.parse(pr.mergedAt) - Date.parse(pr.createdAt)) / HOUR_MS),
     ),
@@ -143,7 +174,12 @@ export function renderTable(metrics, { since = null, repo }) {
       "Merged with no commits after ready-for-review",
       cell(metrics.mergedUnchangedPct, (v) => `${v.toFixed(0)}%`),
     ],
-    ["Median `@claude` rounds per merged PR", cell(metrics.medianClaudeRounds, (v) => String(v))],
+    [
+      "Median `@claude` rounds per merged PR",
+      metrics.claudeRoundsIncomplete === true
+        ? "n/a (incomplete: GitHub data truncated)"
+        : cell(metrics.medianClaudeRounds, (v) => String(v)),
+    ],
     ["Median draft to merge (hours)", cell(metrics.medianDraftToMergeHours, (v) => v.toFixed(1))],
   ];
   return [

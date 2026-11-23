@@ -17,20 +17,20 @@ Errors go to stderr and the exit code is 1. The table goes to stdout.
 
 Agent PRs are the PRs whose head branch starts with `agent/`.
 
-| Metric | Definition |
-| --- | --- |
-| Opened | Agent PRs with `createdAt` on or after `--since` (all history without it). |
-| Merged | Agent PRs with `mergedAt` on or after `--since`. The metrics below use only these PRs. |
-| Merged with no commits after ready-for-review | Share of merged PRs with no commit whose `committedDate` is after the ready-for-review time. Every commit counts, whoever wrote it. The ready time is the first `ReadyForReviewEvent`, or `createdAt` if the PR was never a draft. `n/a` if nothing merged. |
-| Median `@claude` rounds | Per PR, the number of issue comments, and of submitted reviews, that mention `@claude`. A review counts once, even with several inline mentions. Bot authors are excluded. PRs with 0 rounds are included in the median. |
-| Median draft to merge | `mergedAt - createdAt` in hours (agent PRs are opened as drafts). |
+| Metric                                        | Definition                                                                                                                                                                                                                                                                                                                                                                      |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Opened                                        | Agent PRs with `createdAt` on or after `--since` (all history without it).                                                                                                                                                                                                                                                                                                      |
+| Merged                                        | Agent PRs with `mergedAt` on or after `--since`. The metrics below use only these PRs.                                                                                                                                                                                                                                                                                          |
+| Merged with no commits after ready-for-review | Share of merged PRs with no commit whose `committedDate` is after the ready-for-review time. Every commit counts, whoever wrote it. The ready time is the first `ReadyForReviewEvent`, or `createdAt` if the PR was never a draft. `n/a` if nothing merged.                                                                                                                     |
+| Median `@claude` rounds                       | Per PR, the number of issue comments, and of submitted reviews, with a plain-text `@claude` request. Mentions in code blocks, inline code or quoted lines, formatted mentions (`**@claude**`) and longer handles (`@claude-bot`) do not count. A review counts once, even with several inline mentions. Bot authors are excluded. PRs with 0 rounds are included in the median. |
+| Median draft to merge                         | `mergedAt - createdAt` in hours (agent PRs are opened as drafts).                                                                                                                                                                                                                                                                                                               |
 
 ## Known limits
 
 - `committedDate` is set by the commit author. A rebase, or a commit made earlier and pushed
   later, can mislabel a PR. GraphQL has no reliable push time.
 - `gh pr list` is capped at 1000 PRs, and each timeline query reads 100 items per page. The
-  script warns on stderr when a cap is hit.
+  script warns on stderr when a cap is hit. If a timeline or a review's inline comments are truncated, the rounds median is printed as `n/a (incomplete)` instead of an understated number.
 - There is no breakdown by `size:` label (labels live in Linear), and no "review findings
   accepted vs. rejected" figure. Both are out of scope.
 

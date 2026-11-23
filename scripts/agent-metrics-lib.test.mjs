@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   computeMetrics,
+  hasClaudeRequest,
   isAgentPr,
   median,
   normalisePr,
@@ -180,6 +181,61 @@ describe("normalisePr", () => {
 
   it("given a malformed mergedAt, throws", () => {
     expect(() => normalisePr({ ...item, mergedAt: 5 }, [])).toThrow(/mergedAt/);
+  });
+});
+
+describe("hasClaudeRequest", () => {
+  it.each([
+    ["a plain mention", "@claude fix the lint error", true],
+    ["a mention after text", "Thanks. @claude, please retry.", true],
+    ["a mention in a code fence", "Use:\n```\n@claude fix\n```", false],
+    ["a mention in inline code", "Comment `@claude fix` to trigger", false],
+    ["a quoted mention", "> @claude fix lint\nlooks fine", false],
+    ["a bold mention", "**@claude** fix", false],
+    ["a link-formatted mention", "[@claude](https://x.test)", false],
+    ["a longer handle", "@claude-bot please", false],
+    ["a handle with a suffix", "@claudette hi", false],
+    ["an email-like prefix", "me@claude.test", false],
+  ])("given %s, returns the expected result", (_name, body, expected) => {
+    expect(hasClaudeRequest(body)).toBe(expected);
+  });
+});
+
+describe("rounds completeness", () => {
+  const item = {
+    number: 19,
+    createdAt: "2026-11-20T10:00:00Z",
+    mergedAt: "2026-11-20T14:00:00Z",
+  };
+  const human = { __typename: "User", login: "miguelwolf" };
+  const review = (hasNextPage) => ({
+    __typename: "PullRequestReview",
+    body: "",
+    author: human,
+    comments: { pageInfo: { hasNextPage }, nodes: [{ body: "nit", author: human }] },
+  });
+
+  it("given a review with more inline comment pages, marks rounds incomplete", () => {
+    expect(normalisePr(item, [review(true)]).roundsIncomplete).toBe(true);
+  });
+
+  it("given a truncated timeline, marks rounds incomplete", () => {
+    expect(normalisePr(item, [], { truncated: true }).roundsIncomplete).toBe(true);
+  });
+
+  it("given complete pages, marks rounds complete", () => {
+    expect(normalisePr(item, [review(false)]).roundsIncomplete).toBe(false);
+  });
+
+  it("given an incomplete merged PR, withholds the rounds median", () => {
+    const m = computeMetrics([pr({ claudeRounds: 1, roundsIncomplete: true })]);
+    expect(m.medianClaudeRounds).toBeNull();
+    expect(m.claudeRoundsIncomplete).toBe(true);
+  });
+
+  it("given an incomplete result, renders the rounds as incomplete", () => {
+    const m = computeMetrics([pr({ roundsIncomplete: true })]);
+    expect(renderTable(m, { repo: "o/r" })).toContain("n/a (incomplete: GitHub data truncated)");
   });
 });
 

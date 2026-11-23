@@ -24,7 +24,7 @@ const QUERY = `query($owner: String!, $name: String!, $number: Int!) {
           ... on PullRequestReview {
             body
             author { __typename login }
-            comments(first: ${PAGE}) { nodes { body author { __typename login } } }
+            comments(first: ${PAGE}) { pageInfo { hasNextPage } nodes { body author { __typename login } } }
           }
         }
       }
@@ -90,10 +90,18 @@ function main() {
     const items = result?.data?.repository?.pullRequest?.timelineItems;
     if (items?.pageInfo?.hasNextPage) {
       process.stderr.write(
-        `warning: PR #${item.number} has more than ${PAGE} timeline items; counts may be low\n`,
+        `warning: PR #${item.number} has more than ${PAGE} timeline items; rounds marked incomplete\n`,
       );
     }
-    return normalisePr(item, items?.nodes);
+    const normalised = normalisePr(item, items?.nodes, {
+      truncated: items?.pageInfo?.hasNextPage === true,
+    });
+    if (normalised.roundsIncomplete && !items?.pageInfo?.hasNextPage) {
+      process.stderr.write(
+        `warning: PR #${item.number} has a review with more than ${PAGE} inline comments; rounds marked incomplete\n`,
+      );
+    }
+    return normalised;
   });
 
   process.stdout.write(renderTable(computeMetrics(prs, { since }), { since, repo }));
