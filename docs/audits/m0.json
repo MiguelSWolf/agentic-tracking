@@ -1,0 +1,194 @@
+{
+  "milestone": "M0",
+  "generated_at": "2026-11-23T14:51:26Z",
+  "auditor": "Codex",
+  "findings": [
+    {
+      "id": "M0-01",
+      "title": "Install the format plugin in audit validation CI",
+      "severity": "high",
+      "category": "agent-workflow",
+      "evidence": [
+        {
+          "path": ".github/workflows/ci.yml",
+          "line": 51,
+          "note": "The validator loads ajv-formats but the command installs only ajv-cli."
+        },
+        {
+          "path": ".agents/skills/code-health-audit/schema.json",
+          "line": 11,
+          "note": "The generated_at field uses the date-time format."
+        }
+      ],
+      "rationale": "The CI validation command exited before reading the instance because ajv-formats could not be resolved. Valid audit reports can fail the audit gate.",
+      "proposal": "Install compatible versions of ajv-cli and ajv-formats in the same CI invocation and validate a known-good audit plus one with an invalid generated_at value.",
+      "effort": "S"
+    },
+    {
+      "id": "M0-02",
+      "title": "Resolve global event ID uniqueness before implementing partitions",
+      "severity": "high",
+      "category": "adr",
+      "evidence": [
+        {
+          "path": "docs/adr/0002-postgres-event-store.md",
+          "line": 13,
+          "note": "Requires monthly occurred_at partitions and uniqueness on event_id."
+        },
+        {
+          "path": "AGENTS.md",
+          "line": 49,
+          "note": "Client-generated event_id is the idempotency key."
+        },
+        {
+          "path": "packages/event-store/src/index.ts",
+          "line": 1,
+          "note": "The event-store implementation is still a stub."
+        }
+      ],
+      "rationale": "PostgreSQL 16 requires a unique constraint on a partitioned table to include every partition key column. Uniqueness on event_id alone is unavailable with the specified partition key. Adding occurred_at to the constraint would allow the same ID with a changed timestamp.",
+      "proposal": "Supersede ADR-0002 with a storage design that enforces global event_id uniqueness. Require a Postgres integration test that retries one ID with timestamps in different months and observes one stored event.",
+      "effort": "M"
+    },
+    {
+      "id": "M0-03",
+      "title": "Make audit-to-Linear imports safe to rerun",
+      "severity": "medium",
+      "category": "correctness",
+      "evidence": [
+        {
+          "path": ".github/workflows/audit-to-linear.yml",
+          "line": 25,
+          "note": "The push workflow selects the added report again on rerun."
+        },
+        {
+          "path": "scripts/linear.mjs",
+          "line": 152,
+          "note": "The import loops through every finding."
+        },
+        {
+          "path": "scripts/linear.mjs",
+          "line": 168,
+          "note": "Each finding issues an unconditional create."
+        }
+      ],
+      "rationale": "If the import stops midway, a workflow rerun creates new issues for findings already imported. A rerun after full success duplicates the entire report.",
+      "proposal": "Persist a stable import identity derived from milestone and finding ID, reuse existing issues on retry and test that rerunning a partially completed import creates only the missing issues.",
+      "effort": "M"
+    },
+    {
+      "id": "M0-04",
+      "title": "Measure the size:S merge rate per milestone for ADR-0011",
+      "severity": "medium",
+      "category": "adr",
+      "evidence": [
+        {
+          "path": "docs/adr/0011-calibration-metrics.md",
+          "line": 13,
+          "note": "The G1 decision requires two qualifying size:S milestones."
+        },
+        {
+          "path": "scripts/agent-metrics-lib.mjs",
+          "line": 158,
+          "note": "The aggregate accepts a lower date bound without milestone membership or issue size."
+        },
+        {
+          "path": ".agents/skills/retro/SKILL.md",
+          "line": 46,
+          "note": "The retro asks the agent to reconstruct the size:S cohort."
+        },
+        {
+          "path": ".github/workflows/agent-implement.yml",
+          "line": 96,
+          "note": "Retro preparation calls metrics without a milestone filter."
+        }
+      ],
+      "rationale": "The printed unchanged percentage pools agent PRs across sizes and milestones. The retro needs PR-level membership and outcomes to verify the gate threshold.",
+      "proposal": "Join merged agent PRs to their milestone issues and report the size:S numerator, denominator and PR links, with an explicit incomplete result when the join or timeline data is incomplete.",
+      "effort": "M"
+    },
+    {
+      "id": "M0-05",
+      "title": "Bind published local infrastructure ports to loopback",
+      "severity": "medium",
+      "category": "security",
+      "evidence": [
+        {
+          "path": "infra/docker-compose.yml",
+          "line": 14,
+          "note": "Postgres publishes a host port with a default development password."
+        },
+        {
+          "path": "infra/docker-compose.yml",
+          "line": 23,
+          "note": "Mongo is intended for local use without authentication."
+        },
+        {
+          "path": "infra/docker-compose.yml",
+          "line": 27,
+          "note": "Mongo publishes a host port without a host IP."
+        },
+        {
+          "path": "docs/infra/local-environment.md",
+          "line": 32,
+          "note": "The operating guide describes Mongo as local-only."
+        }
+      ],
+      "rationale": "Compose mappings without a host IP bind to all host interfaces by default. Reachability then depends on host and network configuration, leaving the local services unnecessarily exposed.",
+      "proposal": "Bind the published Postgres, Mongo, Metabase and n8n ports to loopback by default and document the bind behavior.",
+      "effort": "S"
+    },
+    {
+      "id": "M0-06",
+      "title": "Specify privacy controls for custom event properties before ingestion",
+      "severity": "medium",
+      "category": "invariant",
+      "evidence": [
+        {
+          "path": "packages/event-schemas/src/events/custom-event-tracked.ts",
+          "line": 6,
+          "note": "Arbitrary property keys and string values pass the shared contract."
+        },
+        {
+          "path": "docs/specs/event-envelope.md",
+          "line": 24,
+          "note": "The spec documents primitive values without a property admission policy."
+        },
+        {
+          "path": "docs/code-standards/event-sourcing.md",
+          "line": 251,
+          "note": "ES-09 forbids payloads from carrying personal data beyond ADR-0009."
+        }
+      ],
+      "rationale": "The schema checks property shape. It provides no way to distinguish approved tracking metadata from arbitrary visitor input. Persistence would make accidental collection difficult to remediate under the append-only design.",
+      "proposal": "Define an explicit property admission and redaction policy at the collector boundary before event storage and test rejected fields and permitted metadata. Keep frozen wire versions intact under ES-07.",
+      "effort": "M"
+    },
+    {
+      "id": "M0-07",
+      "title": "Scope exported workflow findings to the retro milestone",
+      "severity": "medium",
+      "category": "agent-workflow",
+      "evidence": [
+        {
+          "path": ".agents/skills/retro/SKILL.md",
+          "line": 8,
+          "note": "The retro is responsible for findings of its milestone."
+        },
+        {
+          "path": "scripts/linear.mjs",
+          "line": 224,
+          "note": "Milestone issues are fetched from the selected milestone."
+        },
+        {
+          "path": "scripts/linear.mjs",
+          "line": 235,
+          "note": "Workflow findings are fetched by team and source label only."
+        }
+      ],
+      "rationale": "Later retros receive findings from earlier milestones in the same team. The retro can reopen settled decisions or attribute old failures to the wrong milestone.",
+      "proposal": "Associate workflow findings with a milestone and filter the retro export accordingly. Test that a retro excludes a finding associated with a different milestone.",
+      "effort": "M"
+    }
+  ]
+}
