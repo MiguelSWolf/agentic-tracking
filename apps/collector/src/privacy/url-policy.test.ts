@@ -34,7 +34,7 @@ function pageViewed(url: string): PageViewedV1 {
 }
 
 describe("applyUrlPolicy", () => {
-  it("keeps utm_* and click-ID parameters in their original order", () => {
+  it("keeps the standard utm_ and click-ID parameters in their original order", () => {
     const event = pageViewed(
       "https://shop.example/pricing?utm_source=news&gclid=abc123&utm_medium=email",
     );
@@ -54,6 +54,30 @@ describe("applyUrlPolicy", () => {
 
     expect(result.event.context.url).toBe("https://shop.example/p?utm_source=x");
     expect(result.redacted).toEqual({ ...NONE, query_param_dropped: 2 });
+  });
+
+  it("drops utm_-prefixed parameters whose name carries personal text", () => {
+    const event = pageViewed(
+      "https://shop.example/p?utm_jane%40example.com=x&utm_jane_doe=y&utm_source=ok",
+    );
+
+    const result = applyUrlPolicy(event);
+
+    expect(result.event.context.url).toBe("https://shop.example/p?utm_source=ok");
+    expect(JSON.stringify(result.event)).not.toContain("jane");
+    expect(result.redacted).toEqual({ ...NONE, query_param_dropped: 2 });
+  });
+
+  it("rejects personal-looking names under a custom prefix rule", () => {
+    const event = pageViewed("https://shop.example/p?x_jane%40example.com=1&x_ok=2");
+
+    const result = applyUrlPolicy(event, {
+      allowedParamPrefixes: ["x_"],
+      allowedParams: new Set(),
+    });
+
+    expect(result.event.context.url).toBe("https://shop.example/p?x_ok=2");
+    expect(result.redacted).toEqual({ ...NONE, query_param_dropped: 1 });
   });
 
   it("drops the fragment with reason fragment_dropped", () => {

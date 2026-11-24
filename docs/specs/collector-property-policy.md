@@ -62,9 +62,13 @@ any event with a `context`, so it applies to all event types. Pure, never throws
 
 1. The fragment is removed (`fragment_dropped`).
 2. User and password are removed (`credentials_dropped`).
-3. Only query parameters on the allowlist are kept: names starting with `utm_` and the click IDs `gclid`,
-   `gbraid`, `wbraid`, `dclid`, `fbclid`, `msclkid`, `ttclid`, `twclid`, `li_fat_id`. Other parameters are
-   removed, one count each (`query_param_dropped`). Kept parameters keep their order.
+3. Only query parameters on the allowlist are kept: the exact names `utm_source`, `utm_medium`,
+   `utm_campaign`, `utm_term`, `utm_content`, `utm_id`, `utm_source_platform`, `utm_creative_format`,
+   `utm_marketing_tactic`, and the click IDs `gclid`, `gbraid`, `wbraid`, `dclid`, `fbclid`, `msclkid`, `ttclid`, `twclid`, `li_fat_id`. Other parameters are
+   removed, one count each (`query_param_dropped`). Kept parameters keep their order. Other `utm_*` names are removed, because a name
+   is caller-controlled text. A custom policy may set `allowedParamPrefixes`; a prefixed name that looks personal
+   is still removed, but names without an email or 9+ digits (for example a person's name) would pass, so the
+   default has no prefixes.
 4. An allowed parameter whose decoded value looks personal (same detectors as above) is removed
    (`query_value_looks_personal`).
 5. A path segment that looks personal after URL-decoding is replaced with `redacted` (`path_segment_redacted`).

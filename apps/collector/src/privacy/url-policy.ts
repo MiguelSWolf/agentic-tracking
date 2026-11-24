@@ -25,8 +25,18 @@ export type UrlPolicyResult<E> = {
 };
 
 export const DEFAULT_URL_POLICY: UrlPolicy = {
-  allowedParamPrefixes: ["utm_"],
+  // Exact names only: a prefix rule would keep caller-controlled text in the parameter name.
+  allowedParamPrefixes: [],
   allowedParams: new Set([
+    "utm_source",
+    "utm_medium",
+    "utm_campaign",
+    "utm_term",
+    "utm_content",
+    "utm_id",
+    "utm_source_platform",
+    "utm_creative_format",
+    "utm_marketing_tactic",
     "gclid",
     "gbraid",
     "wbraid",
@@ -61,9 +71,12 @@ function safeDecode(value: string): string {
 }
 
 function isAllowedParam(name: string, policy: UrlPolicy): boolean {
+  if (policy.allowedParams.has(name)) {
+    return true;
+  }
+  // A prefix rule must not keep personal-looking text in the name itself.
   return (
-    policy.allowedParams.has(name) ||
-    policy.allowedParamPrefixes.some((prefix) => name.startsWith(prefix))
+    policy.allowedParamPrefixes.some((prefix) => name.startsWith(prefix)) && !looksPersonal(name)
   );
 }
 
