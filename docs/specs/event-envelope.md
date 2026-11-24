@@ -21,7 +21,7 @@ the zod schemas in `packages/event-schemas`.
 | `SessionStarted` | empty |
 | `PageViewed` | `title?` (≤ 300) |
 | `ElementClicked` | `selector` (≤ 500), `label?` (≤ 100, from `data-track-label`), `href?` |
-| `CustomEventTracked` | `name` (≤ 100), `properties?` (flat string, number, boolean or null values) |
+| `CustomEventTracked` | `name` (≤ 100), `properties?` (flat string, number, boolean or null values; the schema checks shape only, the collector admits keys and values per [collector-property-policy.md](collector-property-policy.md)) |
 | `Identified` | empty; envelope `user_id` is required |
 | `ConversionRecorded` | `conversion_id`, `value?` (≥ 0), `currency?` (three upper-case letters, format check only; ISO 4217 membership is not validated); `currency` is required when `value` is present |
 
@@ -35,7 +35,8 @@ thing. A contract test runs every file; a new fixture needs no code change.
 **Versioning.** Published versions are frozen. A change adds a new version plus an upcaster (ES-07).
 
 **Out of scope here.** HMAC verification of `signed`, IP truncation and PII in `context.url` query strings
-belong to the collector.
+belong to the collector. So does admission of custom event properties
+([collector-property-policy.md](collector-property-policy.md)).
 
 ## Related ADRs and schemas
 
