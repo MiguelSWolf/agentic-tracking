@@ -9,6 +9,7 @@ const NONE = {
   query_value_looks_personal: 0,
   path_segment_redacted: 0,
   url_unparseable: 0,
+  url_scheme_unsupported: 0,
 };
 
 const BASE = {
@@ -154,4 +155,19 @@ describe("applyUrlPolicy", () => {
     expect(result.event.context.url).toBe("about:blank");
     expect(result.redacted).toEqual({ ...NONE, url_unparseable: 1 });
   });
+
+  it.each([
+    "mailto:jane@example.com",
+    "data:text/plain,jane@example.com",
+    "javascript:alert('jane@example.com')",
+  ])(
+    "replaces the non-HTTP(S) URL %s with about:blank and counts url_scheme_unsupported",
+    (url) => {
+      const result = applyUrlPolicy(pageViewed(url));
+
+      expect(result.event.context.url).toBe("about:blank");
+      expect(JSON.stringify(result.event)).not.toContain("jane");
+      expect(result.redacted).toEqual({ ...NONE, url_scheme_unsupported: 1 });
+    },
+  );
 });

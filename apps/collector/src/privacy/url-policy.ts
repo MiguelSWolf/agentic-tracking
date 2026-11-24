@@ -7,7 +7,8 @@ export type UrlRedactionReason =
   | "query_param_dropped"
   | "query_value_looks_personal"
   | "path_segment_redacted"
-  | "url_unparseable";
+  | "url_unparseable"
+  | "url_scheme_unsupported";
 
 /** Number of redactions per reason. Fixed labels and integers only. */
 export type UrlRedactionCounts = Readonly<Record<UrlRedactionReason, number>>;
@@ -45,6 +46,7 @@ const NO_REDACTIONS: UrlRedactionCounts = {
   query_value_looks_personal: 0,
   path_segment_redacted: 0,
   url_unparseable: 0,
+  url_scheme_unsupported: 0,
 };
 
 const REDACTED_SEGMENT = "redacted";
@@ -78,6 +80,13 @@ export function applyUrlPolicy<E extends { readonly context: ContextV1 }>(
   const parsed = URL.parse(event.context.url);
   if (parsed === null) {
     redacted.url_unparseable += 1;
+    return { event: { ...event, context: { ...event.context, url: UNPARSEABLE_URL } }, redacted };
+  }
+
+  // Opaque-path URLs (data:, javascript:, mailto:) ignore pathname writes, so they cannot be
+  // redacted segment by segment. Only HTTP(S) is rewritten; anything else becomes the placeholder.
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    redacted.url_scheme_unsupported += 1;
     return { event: { ...event, context: { ...event.context, url: UNPARSEABLE_URL } }, redacted };
   }
 

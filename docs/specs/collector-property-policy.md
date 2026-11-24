@@ -71,6 +71,9 @@ any event with a `context`, so it applies to all event types. Pure, never throws
 6. Scheme, host, port and the other path segments stay. If no parameter is left, the `?` is removed.
 7. If the URL cannot be parsed, it is replaced with `about:blank` (`url_unparseable`). Parsed events always hold
    a valid URL, so this is a safety net.
+8. Only `http:` and `https:` URLs are rewritten. Any other scheme (`mailto:`, `data:`, `javascript:`) has an
+   opaque path that cannot be redacted by segment, so it is replaced with `about:blank`
+   (`url_scheme_unsupported`).
 
 A URL that needs no change is returned as the same event object. The result still satisfies the event's v1 schema.
 `redacted` holds counts per fixed reason, never parameter names or values (NODE-13).
