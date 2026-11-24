@@ -88,8 +88,8 @@ The detectors are heuristics (see above). Not covered by any policy yet: `contex
 another site's query string), `context.click_ids` and envelope `utm_*` values (the schema checks shape only),
 `PageViewed.title` and `ElementClicked.href`.
 
-Nothing calls the policies yet: the ingestion handler does not exist. It must call `applyPropertyPolicy`,
-`applyEventNamePolicy` and `applyUrlPolicy` after schema parsing and before `append`.
+The ingestion handler calls all three policies after schema parsing and before `append`; see
+[collector-ingestion.md](collector-ingestion.md).
 
 ## Related ADRs and schemas
 
