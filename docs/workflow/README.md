@@ -11,8 +11,7 @@ Process gaps found along the way: [findings.md](findings.md).
 | --- | --- |
 | Owner | Decides, approves plans, reviews and merges. Owns protected zones. |
 | Claude | Plans and implements issues, iterates on PR feedback. |
-| CodeRabbit | Reviews agent PRs. |
-| Codex | Audits the codebase at the end of a milestone. |
+| Codex | Reviews agent PRs (run by the owner for now; automation is TRK-35, paused) and audits the codebase at the end of a milestone. |
 
 ## Gates
 
@@ -31,7 +30,7 @@ Process gaps found along the way: [findings.md](findings.md).
 2. Claude writes a plan as a Linear comment.
 3. Owner replies with feedback or adds `plan:approved` (G1).
 4. Claude implements on `agent/trk-<n>-<slug>`; the workflow opens a PR, ready for review.
-5. CodeRabbit and the owner review; Claude iterates on `@claude` comments (G2, G3).
+5. Codex (run by the owner) and the owner review; Claude iterates on `@claude` comments (G2, G3).
 6. Owner merges. The PR contains `Fixes TRK-<n>`, which closes the issue.
 
 ## Syncing an agent branch with the remote
