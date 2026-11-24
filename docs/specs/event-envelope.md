@@ -34,9 +34,11 @@ thing. A contract test runs every file; a new fixture needs no code change.
 
 **Versioning.** Published versions are frozen. A change adds a new version plus an upcaster (ES-07).
 
-**Out of scope here.** HMAC verification of `signed`, IP truncation and PII in `context.url` query strings
-belong to the collector. So does admission of custom event properties
-([collector-property-policy.md](collector-property-policy.md)).
+**Out of scope here.** HMAC verification of `signed` and IP truncation belong to the collector. So do the
+privacy policies for `context.url` (URL policy), `CustomEventTracked.payload.name` (event name policy) and
+custom event properties ([collector-property-policy.md](collector-property-policy.md)). The schema checks
+shape only. `context.referrer`, `context.click_ids`, the envelope `utm_*` values, `PageViewed.title` and
+`ElementClicked.href` have no policy yet.
 
 ## Related ADRs and schemas
 

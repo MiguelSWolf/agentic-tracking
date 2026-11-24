@@ -1,4 +1,5 @@
 import type { CustomEventTrackedV1 } from "@tracking/event-schemas";
+import { looksPersonal } from "./detectors.js";
 
 export type RedactionReason =
   | "key_not_allowed"
@@ -44,17 +45,6 @@ const NO_REDACTIONS: RedactionCounts = {
   value_too_long: 0,
   too_many_properties: 0,
 };
-
-const EMAIL_LIKE = /[^\s@]+@[^\s@]+\.[^\s@]+/;
-const MIN_PERSONAL_DIGIT_RUN = 9;
-
-function looksPersonal(value: string): boolean {
-  if (EMAIL_LIKE.test(value)) {
-    return true;
-  }
-  const compact = value.replace(/[\s\-.()]/g, "");
-  return new RegExp(`\\d{${MIN_PERSONAL_DIGIT_RUN},}`).test(compact);
-}
 
 type PropertyValue = string | number | boolean | null;
 
