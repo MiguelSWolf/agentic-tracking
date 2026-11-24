@@ -1,6 +1,6 @@
 # AGENTS.md — agentic-tracking
 
-Single source of rules for every agent working in this repo (Claude Code, Codex, CodeRabbit).
+Single source of rules for every agent working in this repo (Claude Code, Codex).
 `CLAUDE.md` imports this file. Skills live in `.agents/skills/` (`.claude/skills` is a symlink to it).
 
 ## What this project is
@@ -148,7 +148,7 @@ an existing one. An applied migration never changes; a fix is a new migration (T
 
 To change a protected file, describe the proposed change in the PR or issue and let the owner apply it.
 
-## Review guidance (for CodeRabbit and Codex)
+## Review guidance (for Codex and any reviewer)
 
 Prioritise, in order: violations of the invariants above, missing contract/replay tests,
 ADR violations (check `docs/adr/README.md`), behaviour changes without the matching spec/doc update

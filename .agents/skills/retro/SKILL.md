@@ -39,7 +39,7 @@ are `n/a (incomplete…)`, report them as they are.
 3. **Look for patterns.** Group findings by area. Do the same with the review comments in
    `reviews.md`: when the same kind of correction shows up in **two or more PRs**, or the owner flagged it,
    it is a recurring problem. For each recurring problem, propose **one concrete rule change** in
-   `AGENTS.md`, a skill, a code standard or `.coderabbit.yaml`, with the PR links as evidence. Models do not
+   `AGENTS.md`, a skill, or a code standard, with the PR links as evidence. Models do not
    learn between runs, but the rules they read do. Propose that change, not one fix per comment.
 4. **Calibrate the gates (ADR-0011).**
    - Copy the metrics table as it is.

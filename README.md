@@ -1,7 +1,7 @@
 # agentic-tracking
 
 Event-sourced tracking (UTMs → attribution key → journey → conversion), built agentically:
-Claude implements, CodeRabbit reviews, Codex audits each milestone, a human decides and merges.
+Claude implements, Codex reviews and audits each milestone, a human decides and merges.
 Rules for agents: [AGENTS.md](AGENTS.md). Decisions: [docs/adr](docs/adr).
 
 ## Bootstrap (once, locally — everything after this runs in GitHub Actions)
@@ -20,7 +20,6 @@ gh secret set LINEAR_API_KEY             # Linear → Settings → API → perso
 
 # 3. apps
 #   Claude GitHub App:  run `/install-github-app` inside Claude Code
-#   CodeRabbit:         install the GitHub App on this repo
 #   Codex:              ChatGPT Plus → Codex → connect GitHub → create environment → install "Codex for Linear"
 ```
 

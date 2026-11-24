@@ -1,6 +1,6 @@
 # F-010: CodeRabbit skips every PR authored by `github-actions[bot]`
 
-- Status: open
+- Status: accepted: CodeRabbit removed (owner decision 2026-11-24)
 - Area: Review (CodeRabbit)
 - Source: owner
 - Found: 2026-11-22
