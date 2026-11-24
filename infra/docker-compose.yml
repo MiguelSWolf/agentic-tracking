@@ -1,5 +1,5 @@
 # Local infrastructure (ADR-0010). Run through `pnpm infra:up` so the root .env is read.
-# Every variable has a default that matches .env.example, so no .env is required.
+# Every variable has a default that matches infra/env.example, so no .env is required.
 # Published ports bind to loopback (127.0.0.1) only: the services are not reachable from the LAN.
 name: agentic-tracking
 

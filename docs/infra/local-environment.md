@@ -10,9 +10,11 @@ How to run the local infrastructure and the apps. Runtime scope: [ADR-0010](../a
 ## First run
 
 ```
-cp .env.example .env   # optional: every variable has a default
+cp infra/env.example .env   # optional: every variable has a default
 pnpm dev
 ```
+
+The template lives in `infra/` and has no leading dot, so agent deny rules for `.env.*` do not hide it. The copy stays at the repo root `.env`, which Compose and the apps read.
 
 `pnpm dev` runs `pnpm infra:up` (waits until all healthchecks pass), then starts the apps in watch mode.
 
