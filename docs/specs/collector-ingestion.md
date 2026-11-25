@@ -66,15 +66,59 @@ trusts that gate. A client that skips the gate can still send events; the collec
 The handler does not reject `trust: "signed"`. The schema only forbids `signed` on `source: "client"`, so a
 `source: "server"` event claiming `signed` is stored without HMAC verification (ADR-0008). Tracked in TRK-47.
 
+## HTTP endpoint
+
+`createCollectorServer` (`apps/collector/src/http/server.ts`) puts a `node:http` server in front of `ingestBatch`.
+It does not listen by itself: `main.ts` and the Postgres wiring come with TRK-50.
+
+- Route: `POST /t/events` (ADR-0009). Other methods on it get `405` with `Allow: POST`. Any other path gets `404`.
+- Content types: `application/json` and `text/plain` (any charset), because `navigator.sendBeacon` sends
+  `text/plain`. Anything else gets `415`.
+- Body: `{ "events": [...] }`, at most `COLLECTOR_MAX_BODY_BYTES` (default 262144). The limit is checked on
+  `Content-Length` and again on the streamed bytes, so chunked bodies are covered.
+- Batch length: more than `MAX_BATCH_SIZE` (100) events gets `413`. Other batch faults (not an object, no
+  `events`, empty array) get `400`.
+
+| Status | `error` | Cause |
+| ------ | ------- | ----- |
+| 200 | none | Batch processed. Body is `{ results }`: per event `accepted`, `duplicate` or `rejected` (path and code only). |
+| 400 | `invalid_json`, `invalid_batch` | Body is not JSON, or not a valid batch. |
+| 404 / 405 / 415 | `not_found`, `method_not_allowed`, `unsupported_media_type` | Routing or content type. |
+| 413 | `payload_too_large` | Over the body byte limit or the batch limit. |
+| 503 | `store_unavailable` | `store.append` threw. `Retry-After: 1`. Retrying is safe: `event_id` is the idempotency key (ES-04). |
+| 500 | `internal_error` | Any other unexpected error. |
+
+Error bodies are `{ "error": <fixed code>, "requestId" }`. They never echo input (ES-09, NODE-13).
+
+Client IP: `resolveClientIp` reads `X-Forwarded-For` and takes the entry `COLLECTOR_TRUSTED_PROXY_HOPS` from the
+right (default 1), which is the one our own proxy appended. With `0` hops, or a missing or too short header, it
+uses the socket address. IPv4-mapped IPv6 is unwrapped. The IP goes only to `ingestBatch`, which truncates it.
+If no proxy is in front and hops is 1, a client can spoof the IP by sending the header; bind to loopback or
+keep a proxy in front.
+
+Correlation id (NODE-14): an incoming `x-request-id` matching `^[A-Za-z0-9-]{8,64}$` is reused, otherwise a UUID
+is generated. It is echoed in the `x-request-id` response header and bound to every log line of the request.
+
+Logging (NODE-12, NODE-13): JSON lines on stdout. A request logs `requestId`, `method`, `route` (a fixed
+string), `status`, `durationMs`, and for batches `bodyBytes` and the accepted, duplicate and rejected counts.
+It never logs the IP, headers, body, or user agent. Errors are logged with `name`, `code`, `message` and `stack`
+only; pg `detail` is dropped. This is checked by the "no log line contains" test on one email, IP and cookie. It
+does not cover personal data placed in an error `message` by a different store adapter.
+
+Config (NODE-10): `loadConfig` in `apps/collector/src/config.ts`. Keys: `DATABASE_URL` (required),
+`COLLECTOR_HOST` (`127.0.0.1`), `COLLECTOR_PORT` (`3001`), `COLLECTOR_MAX_BODY_BYTES` (`262144`),
+`COLLECTOR_TRUSTED_PROXY_HOPS` (`1`), `COLLECTOR_SHUTDOWN_TIMEOUT_MS` (`10000`, used by TRK-50), `LOG_LEVEL`
+(`info`). A validation error names the keys, never the values.
+
 ## Not covered
 
-HTTP transport, body size limit, rate limiting, client IP extraction (TRK-49). Postgres adapter, migration,
+`main.ts`, Postgres wiring and graceful shutdown (TRK-50). The `attribution_key` cookie, CORS and rate limiting. Postgres adapter, migration,
 advisory lock and concurrent-append test (TRK-48). HMAC verification (TRK-47). Atomic batches: events are
 appended one at a time.
 
 ## Related ADRs and schemas
 
 - ADR-0001, ADR-0004, ADR-0008, ADR-0009, ADR-0012, ADR-0014.
-- ES-04, ES-09, NODE-03, NODE-13, NODE-15, TS-15, TEST-20.
-- Code: `apps/collector/src/ingest/`, `apps/collector/src/privacy/truncate-ip.ts`, `packages/event-store/src/`.
+- ES-04, ES-09, NODE-03, NODE-04, NODE-10, NODE-12, NODE-13, NODE-14, NODE-15, TS-15, TEST-20.
+- Code: `apps/collector/src/ingest/`, `apps/collector/src/http/`, `apps/collector/src/config.ts`, `apps/collector/src/privacy/truncate-ip.ts`, `packages/event-store/src/`.
 - See also [collector-property-policy.md](collector-property-policy.md) and [event-envelope.md](event-envelope.md).
