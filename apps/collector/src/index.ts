@@ -1,4 +1,13 @@
 export type {
+  EventIssue,
+  EventResult,
+  IngestBatchDeps,
+  IngestBatchInput,
+  IngestBatchResult,
+  IngestRedactions,
+} from "./ingest/ingest-batch.js";
+export { ingestBatch, MAX_BATCH_SIZE } from "./ingest/ingest-batch.js";
+export type {
   EventNamePolicyResult,
   EventNameRedactionCounts,
   EventNameRedactionReason,
@@ -11,6 +20,7 @@ export type {
   RedactionReason,
 } from "./privacy/property-policy.js";
 export { applyPropertyPolicy, DEFAULT_PROPERTY_POLICY } from "./privacy/property-policy.js";
+export { truncateIp } from "./privacy/truncate-ip.js";
 export type {
   UrlPolicy,
   UrlPolicyResult,
